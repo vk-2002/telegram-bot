@@ -3,8 +3,9 @@ import { message } from "telegraf/filters"
 import OpenAI from 'openai';
 import userModel from './src/models/User.js'
 import eventModel from './src/models/Event.js'
-import connectDb from './src/config/db.js'
-//created bot instance. so, we will get different methods and commands to work upon. 
+import connectDb from './src/config/db.js';
+
+//created bot and openai instance. so, we will get different methods and commands to work upon. 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 const openai = new OpenAI({
@@ -38,8 +39,8 @@ bot.start(async (ctx) => {
             }, { upsert: true, new: true }); // Create if not exists, return new doc/record
 
         //after storing data, it will reply 
-        await ctx.reply(`Hey!! ${from.first_name}, Welcome. i will be writing highly engaging social media post for you Just keep feeding me with the events throughout the day . 
-            lets shine on social media. `);
+        await ctx.reply(`Hey!! ${from.first_name}, Welcome aboard. PostGen-Bot at your service!! I will be writing highly engaging social media post for you Just keep feeding me with the events throughout the day. 
+            Let's make an impact on social media. `);
     } catch (error) {
         console.log(error);
         await ctx.reply("facing difficulties from server!");
@@ -47,16 +48,22 @@ bot.start(async (ctx) => {
     }
 });
 
-bot.help((ctx)=> {
-    ctx.reply('for help contact');
+bot.help((ctx) => {
+    ctx.reply('For help, contact the support team or admin :)');
 })
+
+// function to count characters.
+function addCharacterCount(post) {
+    const count = post.length;
+    return `${post}\n\nCharacter count: ${count}`;
+}
 
 //we have to keep bot.command above bot.on. so,if generate is command,then it will be captured easily rather than as a text.
 bot.command('generate', async (ctx) => {
     const from = ctx.update.message.from;
 
     // waitingMessageId is an alias
-    const { message_id: waitingMessageId } = await ctx.reply(` Hey! ${from.first_name}, kindly wait for a moment. I am curating posts for you`)
+    const { message_id: waitingMessageId } = await ctx.reply(` Hey! ${from.first_name}, kindly wait for a moment.I am curating posts for you...`)
     console.log('messageId', waitingMessageId);
 
 
@@ -92,11 +99,16 @@ bot.command('generate', async (ctx) => {
             messages: [
                 {
                     role: 'system',
-                    content: 'Act as a senior copywriter. Write highly engaging posts for LinkedIn, Facebook, and Twitter using provided thoughts/events throughout the day.'
+                    content: 'Act as a senior copywriter and social media strategist. Write highly engaging,short, crisp, and unique posts for LinkedIn, Instagram and Twitter(x) using provided thoughts/events throughout the day. Tailor each post to the platforms unique audience and style.'
                 },
                 {
                     role: 'user',
-                    content: `Write like a human, for humans. Craft three engaging social media posts tailored for LinkedIn, Facebook, and Twitter audiences. Use simple language. Use given time labels just to understand the order of the event, don't mention the time in the posts. Each post should creatively highlight the following events. Ensure the tone is conversational and impactful. Focus on engaging the respective platform's audience, encouraging interaction, and driving interest in the events:\n
+                    content: `Write like a human, for humans. Craft three engaging,short, crisp, and unique social media posts
+                     tailored for LinkedIn, Instagram, and Twitter(x) audiences. Use simple, conversational,authentic writing language with a dash of humor. 
+                     Use given time labels just to understand the order of the event, don't mention the time in the posts. 
+                     Each post should creatively highlight the following events. Ensure the tone is conversational and impactful and requests emojis at the end of each post, if necessary.
+                      Focus on engaging the respective platform's audience, encouraging interaction and driving 
+                      interest in the events:\n
                     ${events.map((event) => event.text).join(', ')}`
                 }
             ]
@@ -114,19 +126,25 @@ bot.command('generate', async (ctx) => {
         });
 
         await ctx.deleteMessage(waitingMessageId);
-        await ctx.reply(chatCompletion.choices[0].message.content);
+
+        // Split the response into individual posts
+        const posts = chatCompletion.choices[0].message.content.split('\n\n');
+
+        // Send each post separately with character count
+        for (let post of posts) {
+            if (post.trim()) {  //Check if the post is not empty as for each non-empty post, it adds the character count.
+                const postWithCount = addCharacterCount(post.trim());
+                await ctx.reply(postWithCount);
+            }
+        }
+
+
     } catch (error) {
         console.error('Error during OpenAI completion:', error);
         await ctx.reply("Facing difficulties during generation");
     }
 
-
-    //send response
-
-
-
 });
-
 
 bot.on(message('text'), async (ctx) => {
     //whenever a message will arrived, we will get user information first.Then further, we will extract text.
@@ -139,7 +157,7 @@ bot.on(message('text'), async (ctx) => {
             tgId: from.id
         })
 
-        await ctx.reply("Noted :) keep texting me your thoughts. To generate the post, just enter the command: /generate");
+        await ctx.reply("Noted 📝 keep texting me your thoughts. To generate the post, just enter the command: /generate");
     } catch (error) {
         console.log(error);
         await ctx.reply("facing difficulties. Please try again.")

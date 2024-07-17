@@ -25,6 +25,7 @@ const userSchema = mongoose.Schema({
         required: true,
         unique: true
     },
+    //optional.so, false.
     promptTokens: {
         type: Number,
         required: false

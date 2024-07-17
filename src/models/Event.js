@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const eventSchema = mongoose.Schema({
-    //now we want to save the text in our databse and we want to know who send it
+    //now we want to save the text in our databse and we want to know who sended it.
 
     text: {
         type: String,
