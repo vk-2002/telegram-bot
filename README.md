@@ -1,5 +1,5 @@
 <div align="center">
-<img width="200px" src="path_to_your_logo_image.png" alt="PostGen-Bot Logo">
+<img width="200px" src="3.jpg" alt="PostGen-Bot Logo">
 </div>
 
 <h1 align="center"> PostGen-Bot <br/> <span style="font-size:10px;">Your AI-Powered Social Media Content Generator</span></h1>
