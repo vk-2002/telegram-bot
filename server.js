@@ -12,6 +12,9 @@ const openai = new OpenAI({
     apiKey: process.env['OPENAI_KEY'], // This is the default and can be omitted
 });
 
+// Ensure webhook is removed before using long polling
+bot.telegram.deleteWebhook();
+
 //for MongoDb connection
 try {
     connectDb();
