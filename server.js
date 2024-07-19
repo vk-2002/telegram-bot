@@ -1,9 +1,19 @@
-import { Telegraf } from "telegraf";
-import { message } from "telegraf/filters"
+import http from 'http';
+import express from 'express';
+import { Telegraf } from 'telegraf';
 import OpenAI from 'openai';
-import userModel from './src/models/User.js'
-import eventModel from './src/models/Event.js'
+import userModel from './src/models/User.js';
+import eventModel from './src/models/Event.js';
 import connectDb from './src/config/db.js';
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('OK');
+});
+
+server.listen(process.env.PORT || 3000, () => {
+  console.log(`Server running on port ${process.env.PORT || 3000}`);
+});
 
 //created bot and openai instance. so, we will get different methods and commands to work upon. 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -15,15 +25,14 @@ const openai = new OpenAI({
 // Ensure webhook is removed before using long polling
 bot.telegram.deleteWebhook();
 
-//for MongoDb connection
+// MongoDB connection
 try {
-    connectDb();
-    console.log("MongoDb database connected successfully")
+  connectDb();
+  console.log('MongoDb database connected successfully');
 } catch (error) {
-    console.log(error);
-    process.kill(process.pid, 'SIGTERM')
+  console.error('MongoDB connection error:', error);
+  process.exit(1);
 }
-
 //ctx(context) is passed to get telegram user data who started this bot.
 bot.start(async (ctx) => {
     //store the information of user in DB i.e MongoDb and import it from user.js file
@@ -168,6 +177,12 @@ bot.on(message('text'), async (ctx) => {
 });
 
 bot.launch();//starts listening for updates.
+// Set webhook for the bot
+const app = express();
+app.use(await bot.createWebhook({ domain: 'https://your-render-domain.onrender.com' }));
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`Server is running on port ${process.env.PORT || 3000}`);
+});
 
 //enable gracefull stops to handle termination signals properly.
 process.once('SIGINT', () => bot.stop('SIGINT'));
