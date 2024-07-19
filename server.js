@@ -70,6 +70,10 @@ bot.start(async (ctx) => {
 bot.help((ctx) => {
   ctx.reply('For help, contact the support team or admin :)');
 });
+//to check Bot is responsive or not. 
+bot.command('Ping', (ctx) => {
+    ctx.reply('Pong!! Bot is responsive.');
+  });
 
 // Function to count characters
 function addCharacterCount(post) {
@@ -147,6 +151,7 @@ bot.command('generate', async (ctx) => {
 bot.on(message('text'), async (ctx) => {
   const from = ctx.update.message.from;
   const message = ctx.update.message.text;
+ console.log(`Received message from user ${from.id}: ${message}`);
 
   try {
     await eventModel.create({
