@@ -71,7 +71,7 @@ bot.help((ctx) => {
   ctx.reply('For help, contact the support team or admin :)');
 });
 //to check Bot is responsive or not. 
-bot.command('Ping', (ctx) => {
+bot.command('ping', (ctx) => {
     ctx.reply('Pong!! Bot is responsive.');
   });
 
