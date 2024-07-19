@@ -3,8 +3,6 @@ import mongoose from "mongoose";
 export default async () => {
   try {
     await mongoose.connect(process.env.MONGO_CONNECT_STRING, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
