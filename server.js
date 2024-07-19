@@ -6,6 +6,8 @@ import userModel from './src/models/User.js';
 import eventModel from './src/models/Event.js';
 import connectDb from './src/config/db.js';
 
+const app = express();
+
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('OK');
@@ -15,175 +17,154 @@ server.listen(process.env.PORT || 3000, () => {
   console.log(`Server running on port ${process.env.PORT || 3000}`);
 });
 
-//created bot and openai instance. so, we will get different methods and commands to work upon. 
+// Create bot and OpenAI instance
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 const openai = new OpenAI({
-    apiKey: process.env['OPENAI_KEY'], // This is the default and can be omitted
+  apiKey: process.env.OPENAI_KEY,
 });
-
-// Ensure webhook is removed before using long polling
-bot.telegram.deleteWebhook();
 
 // MongoDB connection
-try {
-  connectDb();
-  console.log('MongoDb database connected successfully');
-} catch (error) {
-  console.error('MongoDB connection error:', error);
-  process.exit(1);
-}
-//ctx(context) is passed to get telegram user data who started this bot.
-bot.start(async (ctx) => {
-    //store the information of user in DB i.e MongoDb and import it from user.js file
-    const from = ctx.update.message.from;
-    console.log('from', from);
-    /*if we use create method instead of findOneAndupdate then user can start the bot many times */
-    try {
-        await userModel.findOneAndUpdate({ tgId: from.id },
-            {                           // Update user details
-                $setOnInsert: {
-                    firstName: from.first_name,
-                    lastName: from.last_name,
-                    isBot: from.is_bot,
-                    username: from.username
-                }
-            }, { upsert: true, new: true }); // Create if not exists, return new doc/record
+connectDb()
+  .then(() => {
+    console.log('MongoDb database connected successfully');
 
-        //after storing data, it will reply 
-        await ctx.reply(`Hey!! ${from.first_name}, Welcome aboard. PostGen-Bot at your service!! I will be writing highly engaging social media post for you Just keep feeding me with the events throughout the day. 
-            Let's make an impact on social media. `);
-    } catch (error) {
+    // Bot commands and handlers
+    bot.start(async (ctx) => {
+      const from = ctx.update.message.from;
+      console.log('from', from);
+      try {
+        await userModel.findOneAndUpdate(
+          { tgId: from.id },
+          {
+            $setOnInsert: {
+              firstName: from.first_name,
+              lastName: from.last_name,
+              isBot: from.is_bot,
+              username: from.username,
+            },
+          },
+          { upsert: true, new: true }
+        );
+
+        await ctx.reply(
+          `Hey!! ${from.first_name}, Welcome aboard. PostGen-Bot at your service!! I will be writing highly engaging social media posts for you. Just keep feeding me with the events throughout the day. Let's make an impact on social media.`
+        );
+      } catch (error) {
         console.log(error);
-        await ctx.reply("facing difficulties from server!");
+        await ctx.reply('Facing difficulties from server!');
+      }
+    });
 
+    bot.help((ctx) => {
+      ctx.reply('For help, contact the support team or admin :)');
+    });
+
+    // Function to count characters
+    function addCharacterCount(post) {
+      const count = post.length;
+      return `${post}\n\nCharacter count: ${count}`;
     }
-});
 
-bot.help((ctx) => {
-    ctx.reply('For help, contact the support team or admin :)');
-})
+    bot.command('generate', async (ctx) => {
+      const from = ctx.update.message.from;
 
-// function to count characters.
-function addCharacterCount(post) {
-    const count = post.length;
-    return `${post}\n\nCharacter count: ${count}`;
-}
+      const { message_id: waitingMessageId } = await ctx.reply(
+        ` Hey! ${from.first_name}, kindly wait for a moment. I am curating posts for you...`
+      );
 
-//we have to keep bot.command above bot.on. so,if generate is command,then it will be captured easily rather than as a text.
-bot.command('generate', async (ctx) => {
-    const from = ctx.update.message.from;
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
 
-    // waitingMessageId is an alias
-    const { message_id: waitingMessageId } = await ctx.reply(` Hey! ${from.first_name}, kindly wait for a moment.I am curating posts for you...`)
-    console.log('messageId', waitingMessageId);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
 
-
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // get events from user
-    const events = await eventModel.find({
+      const events = await eventModel.find({
         tgId: from.id,
-
         createdAt: {
-            $gte: startOfDay,
-            $lte: endOfDay
-        }
-    })
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      });
 
-    if (events.length === 0) {
-
+      if (events.length === 0) {
         await ctx.deleteMessage(waitingMessageId);
-        await ctx.reply('No events found for a day.')
+        await ctx.reply('No events found for today.');
         return;
-    }
+      }
 
-    console.log('events', events);
-    //make an openai api call
-
-    try {
+      try {
         const chatCompletion = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL, // Specified model in .env
-            messages: [
-                {
-                    role: 'system',
-                    content: 'Act as a senior copywriter and social media strategist. Write highly engaging,short, crisp, and unique posts for LinkedIn, Instagram and Twitter(x) using provided thoughts/events throughout the day. Tailor each post to the platforms unique audience and style.'
-                },
-                {
-                    role: 'user',
-                    content: `Write like a human, for humans. Craft three engaging,short, crisp, and unique social media posts
-                     tailored for LinkedIn, Instagram, and Twitter(x) audiences. Use simple, conversational,authentic writing language with a dash of humor. 
-                     Use given time labels just to understand the order of the event, don't mention the time in the posts. 
-                     Each post should creatively highlight the following events. Ensure the tone is conversational and impactful and requests emojis at the end of each post, if necessary.
-                      Focus on engaging the respective platform's audience, encouraging interaction and driving 
-                      interest in the events:\n
-                    ${events.map((event) => event.text).join(', ')}`
-                }
-            ]
+          model: process.env.OPENAI_MODEL,
+          messages: [
+            {
+              role: 'system',
+              content:
+                "Act as a senior copywriter and social media strategist. Write highly engaging, short, crisp, and unique posts for LinkedIn, Instagram, and Twitter(x) using provided thoughts/events throughout the day. Tailor each post to the platform's unique audience and style.",
+            },
+            {
+              role: 'user',
+              content: `Write like a human, for humans. Craft three engaging, short, crisp, and unique social media posts tailored for LinkedIn, Instagram, and Twitter(x) audiences. Use simple, conversational, authentic writing language with a dash of humor. Use given time labels just to understand the order of the event, don't mention the time in the posts. Each post should creatively highlight the following events. Ensure the tone is conversational and impactful and requests emojis at the end of each post, if necessary. Focus on engaging the respective platform's audience, encouraging interaction and driving interest in the events:\n${events.map((event) => event.text).join(', ')}`,
+            },
+          ],
         });
-        console.log('completion:', chatCompletion);
 
-        //store token count to track user usage
-        await userModel.findOneAndUpdate({
-            tgId: from.id
-        }, {
+        await userModel.findOneAndUpdate(
+          { tgId: from.id },
+          {
             $inc: {
-                promptTokens: chatCompletion.usage.prompt_tokens,
-                completionTokens: chatCompletion.usage.completion_tokens
-            }
-        });
+              promptTokens: chatCompletion.usage.prompt_tokens,
+              completionTokens: chatCompletion.usage.completion_tokens,
+            },
+          }
+        );
 
         await ctx.deleteMessage(waitingMessageId);
 
-        // Split the response into individual posts
         const posts = chatCompletion.choices[0].message.content.split('\n\n');
 
-        // Send each post separately with character count
         for (let post of posts) {
-            if (post.trim()) {  //Check if the post is not empty as for each non-empty post, it adds the character count.
-                const postWithCount = addCharacterCount(post.trim());
-                await ctx.reply(postWithCount);
-            }
+          if (post.trim()) {
+            const postWithCount = addCharacterCount(post.trim());
+            await ctx.reply(postWithCount);
+          }
         }
-
-
-    } catch (error) {
+      } catch (error) {
         console.error('Error during OpenAI completion:', error);
-        await ctx.reply("Facing difficulties during generation");
-    }
+        await ctx.reply('Facing difficulties during generation');
+      }
+    });
 
-});
+    bot.on('text', async (ctx) => {
+      const from = ctx.update.message.from;
+      const message = ctx.update.message.text;
 
-bot.on(message('text'), async (ctx) => {
-    //whenever a message will arrived, we will get user information first.Then further, we will extract text.
-    const from = ctx.update.message.from;
-    const message = ctx.update.message.text;
-
-    try {
+      try {
         await eventModel.create({
-            text: message,
-            tgId: from.id
-        })
+          text: message,
+          tgId: from.id,
+        });
 
-        await ctx.reply("Noted :) keep texting me your thoughts. To generate the post, just enter the command: /generate");
-    } catch (error) {
+        await ctx.reply(
+          'Noted :) Keep texting me your thoughts. To generate the post, just enter the command: /generate'
+        );
+      } catch (error) {
         console.log(error);
-        await ctx.reply("facing difficulties. Please try again.")
-    }
-});
+        await ctx.reply('Facing difficulties. Please try again.');
+      }
+    });
 
-bot.launch();//starts listening for updates.
-// Set webhook for the bot
-const app = express();
-app.use(await bot.createWebhook({ domain: 'https://your-render-domain.onrender.com' }));
+    bot.launch(); // starts listening for updates using long polling
+
+    process.once('SIGINT', () => bot.stop('SIGINT'));
+    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  })
+  .catch((error) => {
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
+  });
+
+// Keeping the HTTP server alive to prevent idling
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
-
-//enable gracefull stops to handle termination signals properly.
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
