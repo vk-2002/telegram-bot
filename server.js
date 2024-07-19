@@ -9,10 +9,10 @@ import express from 'express';
 const app = express();
 const bot = new Telegraf(process.env.BOT_TOKEN);
 app.use(express.json());
-app.use(bot.webhookCallback('/webhook'));
+app.use(bot.webhookCallback('/'));
 
 app.get('/', (req, res) => {
-  res.send('Bot is running');
+  res.send('PostGen-Bot is running');
 });
 
 const PORT = process.env.PORT || 3000;
@@ -161,14 +161,14 @@ bot.on(message('text'), async (ctx) => {
   }
 });
 
-bot.launch(); // starts listening for updates
-
-// Setting webhook after bot launch
+// Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
-  console.log('Webhook set successfully');
-}).catch((error) => {
-  console.error('Error setting webhook:', error);
-});
+    console.log('Webhook set successfully');
+    bot.launch();  // starts listening for updates
+
+  }).catch((error) => {
+    console.error('Error setting webhook:', error);
+  });
 
 // Graceful stops to handle termination signals properly
 process.once('SIGINT', () => bot.stop('SIGINT'));
