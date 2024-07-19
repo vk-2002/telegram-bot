@@ -160,7 +160,7 @@ bot.on(message('text'), async (ctx) => {
             tgId: from.id
         })
 
-        await ctx.reply("Noted 📝 keep texting me your thoughts. To generate the post, just enter the command: /generate");
+        await ctx.reply("Noted :) keep texting me your thoughts. To generate the post, just enter the command: /generate");
     } catch (error) {
         console.log(error);
         await ctx.reply("facing difficulties. Please try again.")
