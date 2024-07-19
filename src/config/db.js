@@ -3,16 +3,15 @@ import mongoose from "mongoose";
 export default async () => {
   try {
     await mongoose.connect(process.env.MONGO_CONNECT_STRING, {
-      ssl: true,
-      sslValidate: false,
-      tls: true,
-      tlsInsecure: true,
-      tlsAllowInvalidCertificates: true,
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
     });
     console.log("MongoDB connected successfully");
   } catch (error) {
-    console.error("MongoDB connection error:", error);
-    console.error("Error details:", JSON.stringify(error, null, 2));
+    console.error("MongoDB connection error:", error.message);
+    console.error("Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
     throw error;
   }
 };

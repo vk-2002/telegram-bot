@@ -12,6 +12,17 @@ const openai = new OpenAI({
     apiKey: process.env['OPENAI_KEY'], // This is the default and can be omitted
 });
 
+//for mongodb testing
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    process.exit(1);
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+  });
+  
 // Ensure webhook is removed before using long polling
 bot.telegram.deleteWebhook();
 
