@@ -49,21 +49,31 @@ process.on('unhandledRejection', (reason, promise) => {
 // Telegraf bot commands and handlers
 bot.start(async (ctx) => {
   const from = ctx.update.message.from;
-  console.log('from', from);
+  console.log('User started the bot:', from);
 
   try {
-    await userModel.findOneAndUpdate({ tgId: from.id }, {
-      $setOnInsert: {
-        firstName: from.first_name,
-        lastName: from.last_name,
-        isBot: from.is_bot,
-        username: from.username,
-      }
-    }, { upsert: true, new: true });
+    const user = await userModel.findOneAndUpdate(
+      { tgId: from.id },
+      {
+        $set: {
+          firstName: from.first_name,
+          lastName: from.last_name,
+          isBot: from.is_bot,
+          username: from.username,
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    if (user.createdAt === user.updatedAt) {
+      console.log('New user created:', user);
+    } else {
+      console.log('Existing user updated:', user);
+    }
 
     await ctx.reply(`Hey!! ${from.first_name}, Welcome aboard. PostGen-Bot at your service!! I will be writing highly engaging social media posts for you. Just keep feeding me with the events throughout the day. Let's make an impact on social media.`);
   } catch (error) {
-    console.log(error);
+    console.error('Error in start command:', error);
     await ctx.reply('Facing difficulties from server!');
   }
 });
@@ -73,8 +83,8 @@ bot.help((ctx) => {
 });
 //to check Bot is responsive or not. 
 bot.command('ping', (ctx) => {
-    ctx.reply('Pong!! Bot is responsive.');
-  });
+  ctx.reply('Pong!! Bot is responsive.');
+});
 
 // Function to count characters
 function addCharacterCount(post) {
@@ -152,29 +162,44 @@ bot.command('generate', async (ctx) => {
 bot.on(message('text'), async (ctx) => {
   const from = ctx.update.message.from;
   const message = ctx.update.message.text;
- console.log(`Received message from user ${from.id}: ${message}`);
+  console.log(`Received message from user ${from.id}: ${message}`);
 
   try {
-    await eventModel.create({
+    // Ensure user exists
+    let user = await userModel.findOne({ tgId: from.id });
+    if (!user) {
+      //New users are created if they somehow bypass the start command.
+      user = await userModel.create({
+        tgId: from.id,
+        firstName: from.first_name,
+        lastName: from.last_name,
+        isBot: from.is_bot,
+        username: from.username,
+      });
+      console.log('Created new user in message handler:', user);
+    }
+
+    const newEvent = await eventModel.create({
       text: message,
       tgId: from.id,
     });
+    console.log('New event created:', newEvent);
 
     await ctx.reply('Noted :) Keep texting me your thoughts. To generate the post, just enter the command: /generate');
   } catch (error) {
-    console.log(error);
+    console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
 
 // Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
-    console.log('Webhook set successfully');
-    bot.launch();  // starts listening for updates
+  console.log('Webhook set successfully');
+  bot.launch();  // starts listening for updates
 
-  }).catch((error) => {
-    console.error('Error setting webhook:', error);
-  });
+}).catch((error) => {
+  console.error('Error setting webhook:', error);
+});
 
 // Graceful stops to handle termination signals properly
 process.once('SIGINT', () => bot.stop('SIGINT'));
