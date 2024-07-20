@@ -11,8 +11,9 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 app.use(express.json());
 app.use(bot.webhookCallback('/'));
 
+//Uptime Robot or similar services can ping this endpoint. 
 app.get('/', (req, res) => {
-  res.send('PostGen-Bot is running');
+  res.status(200).send('PostGen-Bot is up and running');
 });
 
 const PORT = process.env.PORT || 3000;
