@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 // Define the schema for storing user information in MongoDB.
-
 const userSchema = mongoose.Schema({
     tgId: {   // Telegram ID
         type: String,
@@ -22,10 +21,10 @@ const userSchema = mongoose.Schema({
     },
     username: {
         type: String,
-        required: true,
-        unique: true
+        required: false, // Make username optional
+        unique: false // Remove uniqueness constraint
     },
-    //optional.so, false.
+    // Optional fields
     promptTokens: {
         type: Number,
         required: false
@@ -36,5 +35,5 @@ const userSchema = mongoose.Schema({
     }
 }, { timestamps: true });
 
-//exporting the model in server.js file 
+// Export the model in server.js file 
 export default mongoose.model('User', userSchema);

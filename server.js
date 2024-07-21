@@ -59,7 +59,8 @@ bot.start(async (ctx) => {
           firstName: from.first_name,
           lastName: from.last_name,
           isBot: from.is_bot,
-          username: from.username,
+         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
+          username: from.username || '', 
         }
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
