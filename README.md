@@ -6,13 +6,13 @@
 
 <h1 align="center"> PostGen-Bot <br/> <span style="font-size:10px;">Your AI-Powered Social Media Content Generator</span></h1>
 
-<div align="center">
-![Badge](https://img.shields.io/badge/Platform-Telegram-blue)
-![Badge](https://img.shields.io/badge/AI-OpenAI-green)
-![Badge](https://img.shields.io/badge/Database-MongoDB-yellow)
-![Badge](https://img.shields.io/badge/Language-JavaScript-orange)
-![Badge](https://img.shields.io/badge/Framework-Node.js-green)
-</div>
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Telegram-blue" alt="Platform: Telegram">
+  <img src="https://img.shields.io/badge/AI-OpenAI-green" alt="AI: OpenAI">
+  <img src="https://img.shields.io/badge/Database-MongoDB-yellow" alt="Database: MongoDB">
+  <img src="https://img.shields.io/badge/Language-JavaScript-orange" alt="Language: JavaScript">
+  <img src="https://img.shields.io/badge/Framework-Node.js-green" alt="Framework: Node.js">
+</p>
 
 ## Tech Stack and Tools:
 <span>
@@ -22,11 +22,12 @@
 <img src="https://img.shields.io/badge/telegram%20-%232CA5E0.svg?&style=for-the-badge&logo=telegram&logoColor=white"/>
 <img src="https://img.shields.io/badge/openai%20-%23412991.svg?&style=for-the-badge&logo=openai&logoColor=white"/>
 </span>
-- Backend: Node.js
-- Database: MongoDB
-- Bot Platform: Telegram
-- AI Integration: OpenAI
-- Version Control: Git and GitHub
+
+- **Backend:** Node.js
+- **Database:** MongoDB
+- **Bot Platform:** Telegram
+- **AI Integration:** OpenAI
+- **Version Control:** Git and GitHub
 
 <h3 align="center">✨ Welcome to PostGen-Bot ✨</h3> <hr>
 
@@ -68,8 +69,6 @@ PostGen-Bot is your AI-powered social media assistant, designed to help you crea
 - Node.js and npm installed
 - MongoDB instance running
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ### Setup
 
 1. **Clone the repository**:
@@ -96,7 +95,9 @@ PostGen-Bot is your AI-powered social media assistant, designed to help you crea
     ```bash
     npm start
     ```
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## Usage
 Here's how to use PostGen-Bot:
 1. **Start the bot**: 
@@ -110,16 +111,18 @@ Here's how to use PostGen-Bot:
 5. **Repeat**:
    Keep sharing events throughout the day for fresh content.
 
-💡 Pro Tip: The more details you share, the better your posts will be!
-Need help? Just type /help anytime.
+💡 Pro Tip: The more details you share, the better your posts will be! <br />
+
+   Need help? Just type /help anytime.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Contributing
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for more details.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+<hr>
 
 <div align="center">
 Made with ❤️ for social media enthusiasts
