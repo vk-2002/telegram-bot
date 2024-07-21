@@ -8,12 +8,13 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Telegram-blue" alt="Platform: Telegram">
-  <img src="https://img.shields.io/badge/AI-OpenAI-green" alt="AI: OpenAI">
+  <img src="https://shields.io/badge/AI-OpenAI-orange" alt="AI: OpenAI">  
   <img src="https://img.shields.io/badge/Framework-Node.js-purple" alt="Framework: Node.js">
-  <img src="https://img.shields.io/badge/Database-MongoDB-yellow" alt="Database: MongoDB">
-  <img src="https://img.shields.io/badge/Language-JavaScript-orange" alt="Language: JavaScript">
-  <img src="https://img.shields.io/badge/LICENSE-MIT-6A0D91.svg?&style=for-the-badge" alt="License: MIT">
+  <img src="https://shields.io/badge/Database-MongoDB-green" alt="Database: MongoDB">
+  <img src="https://img.shields.io/badge/Language-JavaScript-red" alt="Language: JavaScript">
+  <img src="https://img.shields.io/badge/LICENSE-MIT-yellow" alt="License: MIT">
 </p>
+
 
 ## Tech Stack and Tools:
 <span>
@@ -46,8 +47,10 @@
   <summary>Click to expand</summary>
   
   - [Overview](#overview)
+  - [Problem and Solution](#problem-and-solution)
   - [Key Features](#key-features)
   - [How It Works](#how-it-works)
+  - [Dependencies Used](#dependencies-used)
   - [Installation](#installation)
   - [Usage](#usage)
   - [Contributing](#contributing)
@@ -55,8 +58,20 @@
   
 </details> 
 
-## Overview
-PostGen-Bot is your AI-powered social media assistant, designed to help you create engaging, platform-specific content with ease. Simply share your daily events and let PostGen-Bot craft perfect posts for LinkedIn, Instagram and Twitter. Improve your social media presence without exerting any effort!!
+## Overview🤖
+PostGen-Bot is your AI-powered social media assistant, designed to help you create engaging, platform-specific content with ease. Simply share your daily events and let PostGen-Bot craft perfect posts for LinkedIn, Instagram and Twitter(x). Improve your social media presence without exerting any effort!!
+
+## Problem and Solution
+
+### The Problem 🆘
+
+- It can be difficult, hectic and time-consuming to regularly manage and produce interesting social media material, especially for working professionals. 
+- Traditional methods need a lot of work to remain updated and active across several platforms.
+
+### Our Solution 💡
+
+- PostGen-Bot assists users in maintaining an active and engaging social media presence without the constant need to create material by automating the content generation procedure via telegram.
+- It allows to user's input for unique posts and also saves time.
 
 ## Key Features:
 - AI-powered content generation.
@@ -69,12 +84,17 @@ PostGen-Bot is your AI-powered social media assistant, designed to help you crea
 ## Dependencies used🖥️
 - [x] nodemon (for auto-restarting the server during development).
 - [x] Express (web application framework).
-      
+- [x] Mongoose (MongoDB object modeling tool).
+- [x] OpenAI (For accessing the OpenAI API).
+- [x] Telegraf (Telegram bot framework).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## How It Works
 1. Start a chat with PostGen-Bot on Telegram.
 2. Share your daily events and thoughts.
 3. Use the /generate command to create tailored social media posts.
-4. Receive unique, platform-specific content for LinkedIn, Instagram and Twitter.
+4. Receive unique, platform-specific content for LinkedIn, Instagram and Twitter(x).
 5. Copy and paste the generated posts to your social media platforms.
 
 ## Installation
@@ -128,7 +148,7 @@ Here's how to use PostGen-Bot:
 3. **Generate posts**:
    When ready, type /generate to create social media content.
 4. **Review and use**:
-   You'll receive tailored posts for LinkedIn, Instagram and Twitter. Copy and paste to your preferred platforms.
+   You'll receive tailored posts for LinkedIn, Instagram and Twitter(x). Copy and paste to your preferred platforms.
 5. **Repeat**:
    Keep sharing events throughout the day for fresh content.
 
