@@ -7,6 +7,7 @@ import connectDb from './src/config/db.js';
 import express from 'express';
 
 const app = express();
+//created bot instance. so, we will get different methods and commands to work upon. 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 app.use(express.json());
 app.use(bot.webhookCallback('/'));
@@ -47,14 +48,16 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Telegraf bot commands and handlers
+//ctx(context) is passed to get telegram user data who started this bot.
 bot.start(async (ctx) => {
+   //store the information of user in DB i.e MongoDb and import it from user.js file
   const from = ctx.update.message.from;
   console.log('User started the bot:', from);
-
+/*if we use create method instead of findOneAndupdate then user can start the bot many times */
   try {
     const user = await userModel.findOneAndUpdate(
       { tgId: from.id },
-      {
+      {    // Update user details
         $set: {
           firstName: from.first_name,
           lastName: from.last_name,
@@ -63,7 +66,7 @@ bot.start(async (ctx) => {
           username: from.username || '', 
         }
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true }   // Create if not exists
     );
 
     if (user.createdAt === user.updatedAt) {
@@ -72,6 +75,7 @@ bot.start(async (ctx) => {
       console.log('Existing user updated:', user);
     }
 
+    //after storing data, it will reply 
     await ctx.reply(`Hey!! ${from.first_name}, Welcome aboard. PostGen-Bot at your service!! I will be writing highly engaging social media posts for you. Just keep feeding me with the events throughout the day. Let's make an impact on social media.`);
   } catch (error) {
     console.error('Error in start command:', error);
@@ -93,8 +97,10 @@ function addCharacterCount(post) {
   return `${post}\n\nCharacter count: ${count}`;
 }
 
+//we have to keep bot.command above bot.on. so,if generate is command,then it will be captured easily rather than as a text.
 bot.command('generate', async (ctx) => {
   const from = ctx.update.message.from;
+
   const { message_id: waitingMessageId } = await ctx.reply(`Hey! ${from.first_name}, kindly wait for a moment. I am curating posts for you...`);
   console.log('messageId', waitingMessageId);
 
@@ -104,6 +110,7 @@ bot.command('generate', async (ctx) => {
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
+  // get events from user
   const events = await eventModel.find({
     tgId: from.id,
     createdAt: {
@@ -120,21 +127,23 @@ bot.command('generate', async (ctx) => {
 
   console.log('events', events);
 
+    //make an openai api call
   try {
     const chatCompletion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL,
       messages: [
         {
           role: 'system',
-          content: 'Act as a senior copywriter and social media strategist. Write highly engaging, short, crisp, and unique posts for LinkedIn, Instagram, and Twitter(x) using provided thoughts/events throughout the day. Tailor each post to the platforms unique audience and style.',
+          content: 'Act as a senior copywriter and social media strategist. Write highly engaging, short, crisp and unique SEO friendly posts for LinkedIn, Instagram and Twitter(x) using provided thoughts/events throughout the day. Tailor each SEO friendly post to the platforms unique audience and style.',
         },
         {
           role: 'user',
-          content: `Write like a human, for humans. Craft three engaging, short, crisp, and unique social media posts tailored for LinkedIn, Instagram, and Twitter(x) audiences. Use simple, conversational, authentic writing language with a dash of humor. Use given time labels just to understand the order of the event, don't mention the time in the posts. Each post should creatively highlight the following events. Ensure the tone is conversational and impactful and requests emojis at the end of each post, if necessary. Focus on engaging the respective platform's audience, encouraging interaction and driving interest in the events:\n${events.map((event) => event.text).join(', ')}`,
+          content: `Write like a human, for humans. Craft three engaging, short, crisp and unique SEO friendly social media posts tailored for LinkedIn, Instagram and Twitter(x) audiences. Use simple, conversational, authentic writing language with a dash of humor. Use given time labels just to understand the order of the event, don't mention the time in the posts. Each SEO friendly post should creatively highlight the following events. Ensure the tone is conversational and impactful and requests emojis at the end of each SEO friendly post, if necessary. Focus on engaging the respective platform's audience, encouraging interaction and driving interest in the events:\n${events.map((event) => event.text).join(', ')}`,
         }
       ],
     });
 
+     //store token count to track user usage
     await userModel.findOneAndUpdate({
       tgId: from.id,
     }, {
@@ -146,8 +155,10 @@ bot.command('generate', async (ctx) => {
 
     await ctx.deleteMessage(waitingMessageId);
 
+    // Split the response into individual posts
     const posts = chatCompletion.choices[0].message.content.split('\n\n');
 
+    // Send each post separately with character count.
     for (let post of posts) {
       if (post.trim()) {
         const postWithCount = addCharacterCount(post.trim());
@@ -161,6 +172,7 @@ bot.command('generate', async (ctx) => {
 });
 
 bot.on(message('text'), async (ctx) => {
+   //whenever a message will arrived, we will get user information first.Then further, we will extract text.
   const from = ctx.update.message.from;
   const message = ctx.update.message.text;
   console.log(`Received message from user ${from.id}: ${message}`);
