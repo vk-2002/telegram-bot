@@ -1,3 +1,5 @@
+<a name="readme-top"></a>
+
 <div align="center">
 <img width="200px" src="3.jpg" alt="PostGen-Bot Logo">
 </div>
@@ -5,13 +7,11 @@
 <h1 align="center"> PostGen-Bot <br/> <span style="font-size:10px;">Your AI-Powered Social Media Content Generator</span></h1>
 
 <div align="center">
-
 ![Badge](https://img.shields.io/badge/Platform-Telegram-blue)
 ![Badge](https://img.shields.io/badge/AI-OpenAI-green)
 ![Badge](https://img.shields.io/badge/Database-MongoDB-yellow)
 ![Badge](https://img.shields.io/badge/Language-JavaScript-orange)
 ![Badge](https://img.shields.io/badge/Framework-Node.js-green)
-
 </div>
 
 ## Tech Stack and Tools:
@@ -22,23 +22,27 @@
 <img src="https://img.shields.io/badge/telegram%20-%232CA5E0.svg?&style=for-the-badge&logo=telegram&logoColor=white"/>
 <img src="https://img.shields.io/badge/openai%20-%23412991.svg?&style=for-the-badge&logo=openai&logoColor=white"/>
 </span>
+- Backend: Node.js
+- Database: MongoDB
+- Bot Platform: Telegram
+- AI Integration: OpenAI
+- Version Control: Git and GitHub
 
-- **Backend:** Node.js
-- **Database:** MongoDB
-- **Bot Platform:** Telegram
-- **AI Integration:** OpenAI
-- **Version Control:** Git and GitHub
-
-<h3 align="center">✨ Welcome to PostGen-Bot ✨</h3>
+<h3 align="center">✨ Welcome to PostGen-Bot ✨</h3> <hr>
 
 ## Table of Contents
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [How It Works](#how-it-works)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+<details>
+  <summary>Click to expand</summary>
+  
+  - [Overview](#overview)
+  - [Key Features](#key-features)
+  - [How It Works](#how-it-works)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Contributing](#contributing)
+  - [License](#license)
+  
+</details> 
 
 ## Overview
 PostGen-Bot is your AI-powered social media assistant, designed to help you create engaging, platform-specific content with ease. Simply share your daily events, and let PostGen-Bot craft perfect posts for LinkedIn, Instagram, and Twitter.
@@ -59,27 +63,54 @@ PostGen-Bot is your AI-powered social media assistant, designed to help you crea
 
 ## Installation
 
+### Prerequisites
 
+- Node.js and npm installed
+- MongoDB instance running
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Setup
+
+1. **Clone the repository**:
+    ```bash
+    git clone https://github.com/yourusername/postgen-bot.git
+    cd postgen-bot
+    ```
+
+2. **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+3. **Set up environment variables**:
+   Create a `.env` file in the root directory and add the following variables:
+    ```plaintext
+    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+    OPENAI_API_KEY=your_openai_api_key
+    MONGODB_URI=your_mongodb_uri
+    ```
+   Replace `your_*` with your actual API keys and tokens.
+
+4. **Start the bot**:
+    ```bash
+    npm start
+    ```
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 ## Usage
 Here's how to use PostGen-Bot:
-
-1. **Start the bot:** 
+1. **Start the bot**: 
    Type /start to begin your journey.
-
-2. **Share your day:**
+2. **Share your day**:
    Simply send messages about events, thoughts, or experiences as they happen.
-
-3. **Generate posts:**
+3. **Generate posts**:
    When ready, type /generate to create social media content.
-
-4. **Review and use:**
+4. **Review and use**:
    You'll receive tailored posts for LinkedIn, Instagram, and Twitter. Copy and paste to your preferred platforms.
-
-5. **Repeat:**
+5. **Repeat**:
    Keep sharing events throughout the day for fresh content.
 
 💡 Pro Tip: The more details you share, the better your posts will be!
-
 Need help? Just type /help anytime.
 
 ## Contributing
@@ -87,6 +118,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <div align="center">
 Made with ❤️ for social media enthusiasts
