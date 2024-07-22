@@ -73,6 +73,11 @@ PostGen-Bot is your AI-powered social media assistant, designed to help you crea
 - PostGen-Bot assists users in maintaining an active and engaging social media presence without the constant need to create material by automating the content generation procedure via telegram.
 - It allows to user's input for unique posts and also saves time.
 
+<div align="center">
+<img src="bot img2.JPG" alt="bot dashboard">
+<img src="bot img1.JPG" alt="bot dashboard1">
+</div>
+
 ## Key Features:
 - AI-powered content generation.
 - Platform-specific post creation(LinkedIn,Instagram & Twitter)
@@ -151,6 +156,8 @@ Here's how to use PostGen-Bot:
    You'll receive tailored posts for LinkedIn, Instagram and Twitter(x). Copy and paste to your preferred platforms.
 5. **Repeat**:
    Keep sharing events throughout the day for fresh content.
+6. The project code includes various comments which clarify functionality and increase readability. These comments can be useful for understanding the code's structure and logic.
+7. For more information, access the full project demo video on Google Drive [here](https://drive.google.com/file/d/1r49LfxQBwPE3hDj3OKWNsg2jM6zjOa6U/view?usp=drive_link).  
 
 💡 Pro Tip: The more details you share, the better your posts will be! <br />
 
