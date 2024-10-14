@@ -62,6 +62,16 @@ bot.on(message('text'), async (ctx) => {
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
+  console.log('Webhook set successfully');
+  bot.launch();  // starts listening for updates
 
+}).catch((error) => {
+  console.error('Error setting webhook:', error);
+});
+
+// Graceful stops to handle termination signals properly
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
 // Start the bot
 bot.launch();
