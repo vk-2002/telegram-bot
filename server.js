@@ -112,10 +112,12 @@ bot.on(message('text'), async (ctx) => {
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Check if the message contains a mention of another user using @username
-    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g);
+    // Extract both @username mentions and plain names
+    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // For @mentions
+    const mentionedPlainNames = message.match(/\b[A-Z][a-z]+\b/g); // For regular names (first letter capitalized)
 
     if (mentionedUsernames && mentionedUsernames.length > 0) {
+      // Handle appreciation for users with @username
       for (const mention of mentionedUsernames) {
         const mentionedUsername = mention.substring(1); // Remove the "@" symbol
 
@@ -123,14 +125,9 @@ bot.on(message('text'), async (ctx) => {
         let mentionedUser = await userModel.findOne({ username: mentionedUsername });
 
         if (!mentionedUser) {
-          // If the mentioned user is not found by username, try to match by their Telegram ID
-          mentionedUser = await userModel.findOne({ tgId: ctx.update.message.reply_to_message?.from?.id });
-          
-          if (!mentionedUser) {
-            // If no matching user by username or tgId, send a message that the user was not found
-            await ctx.reply(`User @${mentionedUsername} not found in the database, and no alternative way to identify them.`);
-            continue;
-          }
+          // If no matching user by username, send a message that the user was not found
+          await ctx.reply(`User @${mentionedUsername} not found in the database, and no alternative way to identify them.`);
+          continue;
         }
 
         // Update the appreciation counts for the sender and the mentioned user
@@ -138,9 +135,30 @@ bot.on(message('text'), async (ctx) => {
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
         // Immediate reply for appreciation acknowledgment
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername || mentionedUser.firstName || 'this user'}! 🎉`);
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
         
         console.log(`Updated appreciation counts: ${sender.username} gave appreciation, ${mentionedUsername} received appreciation.`);
+      }
+    } else if (mentionedPlainNames && mentionedPlainNames.length > 0) {
+      // Handle appreciation for users mentioned by plain name (e.g., "Vishal")
+      for (const plainName of mentionedPlainNames) {
+        // Try to find the user in the database by their first name
+        let mentionedUser = await userModel.findOne({ firstName: plainName });
+
+        if (!mentionedUser) {
+          // If no matching user by first name, notify the sender
+          await ctx.reply(`User ${plainName} not found in the database, and no alternative way to identify them.`);
+          continue;
+        }
+
+        // Update the appreciation counts for the sender and the mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+        // Immediate reply for appreciation acknowledgment
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
+        
+        console.log(`Updated appreciation counts: ${sender.username} gave appreciation, ${plainName} received appreciation.`);
       }
     } else {
       // If no mentions, do nothing or handle normal messages (if required)
