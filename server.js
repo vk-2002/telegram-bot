@@ -89,7 +89,7 @@ bot.command('start', (ctx) => {
 //edited
 bot.on(message('text'), async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
-  const message = ctx.update.message.text.trim();
+  const message = ctx.update.message.text;
   console.log(`Received message from user ${from.id}: ${message}`);
 
   try {
@@ -101,31 +101,22 @@ bot.on(message('text'), async (ctx) => {
         firstName: from.first_name,
         lastName: from.last_name,
         isBot: from.is_bot,
-        username: from.username || '', // Handle users without a username
+        username: from.username,
       });
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Extract both @username mentions and possible real names (excluding generic words)
-     const mentionedUsernames = messageText.match(/@[a-zA-Z0-9_]+/g); // For @mentions
-    const mentionedNames = messageText.match(/\b[A-Z][a-z]+\b/g); // For capitalized names (like real names)
-
-
-    // Exclude common generic words like "Thanks", "Thank", "Dear", etc.
-      const ignoredWords = ['Thanks', 'Thank', 'Dear', 'Hello', 'Hi'];
-    const filteredNames = mentionedNames ? mentionedNames.filter(name => !ignoredWords.includes(name)) : [];
-
+    // Check if the message contains a mention of another user using @username
+    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g);
 
     if (mentionedUsernames && mentionedUsernames.length > 0) {
-      // Handle appreciation for users with @username
       for (const mention of mentionedUsernames) {
         const mentionedUsername = mention.substring(1); // Remove the "@" symbol
 
-        // Try to find the mentioned user in the database by username
+        // Find the mentioned user in the database
         let mentionedUser = await userModel.findOne({ username: mentionedUsername });
-
         if (!mentionedUser) {
-          // If no matching user by username, send a message that the user was not found
+          // If the mentioned user is not found in the database, skip to the next mention
           await ctx.reply(`User @${mentionedUsername} not found in the database.`);
           continue;
         }
@@ -136,33 +127,12 @@ bot.on(message('text'), async (ctx) => {
 
         // Immediate reply for appreciation acknowledgment
         await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
-
+        
         console.log(`Updated appreciation counts: ${sender.username} gave appreciation, ${mentionedUsername} received appreciation.`);
-      }
-    } else if (filteredNames && filteredNames.length > 0) {
-      // Handle appreciation for users mentioned by plain name (e.g., "Sanket")
-      for (const plainName of filteredNames) {
-        // Try to find the user in the database by their first name
-        let mentionedUser = await userModel.findOne({ firstName: plainName });
-
-        if (!mentionedUser) {
-          // If no matching user by first name, notify the sender
-          await ctx.reply(`User ${plainName} not found in the database.`);
-          continue;
-        }
-
-        // Update the appreciation counts for the sender and the mentioned user
-        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-        // Immediate reply for appreciation acknowledgment
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
-
-        console.log(`Updated appreciation counts: ${sender.username} gave appreciation, ${plainName} received appreciation.`);
       }
     } else {
       // If no mentions, do nothing or handle normal messages (if required)
-      console.log(`No valid mentions in the message from user ${from.id}. Message: "${message}"`);
+      console.log(`No mentions in the message from user ${from.id}. Message: "${message}"`);
     }
   } catch (error) {
     console.error('Error handling message:', error);
