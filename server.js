@@ -16,9 +16,10 @@ connectDb()
     process.exit(1);
   });
 //Web book 
-// Remove bot.launch() if webhook is set
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
   console.log('Webhook set successfully');
+  bot.launch();  // starts listening for updates
+
 }).catch((error) => {
   console.error('Error setting webhook:', error);
 });
