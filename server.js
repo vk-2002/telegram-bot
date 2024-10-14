@@ -98,78 +98,64 @@ function addCharacterCount(post) {
 }
 
 //we have to keep bot.command above bot.on. so,if generate is command,then it will be captured easily rather than as a text.
-bot.command('generate', async (ctx) => {
-  const from = ctx.update.message.from;
+bot.on(message('text'), async (ctx) => {
+  const from = ctx.update.message.from; // The user who sent the message
+  const message = ctx.update.message.text;
+  console.log(`Received message from user ${from.id}: ${message}`);
 
-  const { message_id: waitingMessageId } = await ctx.reply(`Hey! ${from.first_name}, kindly wait for a moment. I am curating posts for you...`);
-  console.log('messageId', waitingMessageId);
-
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
-
-  // get events from user
-  const events = await eventModel.find({
-    tgId: from.id,
-    createdAt: {
-      $gte: startOfDay,
-      $lte: endOfDay,
-    },
-  });
-
-  if (events.length === 0) {
-    await ctx.deleteMessage(waitingMessageId);
-    await ctx.reply('No events found for today.');
-    return;
-  }
-
-  console.log('events', events);
-
-    //make an openai api call
   try {
-    const chatCompletion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'Act as a senior copywriter and social media strategist. Write highly engaging, short, crisp and unique SEO friendly posts for LinkedIn, Instagram and Twitter(x) using provided thoughts/events throughout the day. Tailor each SEO friendly post to the platforms unique audience and style.',
-        },
-        {
-          role: 'user',
-          content: `Write like a human, for humans. Craft three engaging, short, crisp and unique SEO friendly social media posts tailored for LinkedIn, Instagram and Twitter(x) audiences. Use simple, conversational, authentic writing language with a dash of humor. Use given time labels just to understand the order of the event, don't mention the time in the posts. Each SEO friendly post should creatively highlight the following events. Ensure the tone is conversational and impactful and requests emojis at the end of each SEO friendly post, if necessary. Focus on engaging the respective platform's audience, encouraging interaction and driving interest in the events:\n${events.map((event) => event.text).join(', ')}`,
+    // Ensure the sender exists in the database
+    let sender = await userModel.findOne({ tgId: from.id });
+    if (!sender) {
+      sender = await userModel.create({
+        tgId: from.id,
+        firstName: from.first_name,
+        lastName: from.last_name,
+        isBot: from.is_bot,
+        username: from.username,
+      });
+      console.log('Created new sender in message handler:', sender);
+    }
+
+    // Check if the message contains a mention of another user using @username
+    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g);
+
+    if (mentionedUsernames && mentionedUsernames.length > 0) {
+      for (const mention of mentionedUsernames) {
+        const mentionedUsername = mention.substring(1); // Remove the "@" symbol
+
+        // Find the mentioned user in the database
+        let mentionedUser = await userModel.findOne({ username: mentionedUsername });
+        if (!mentionedUser) {
+          // If the mentioned user is not found in the database, skip to the next mention
+          await ctx.reply(`User @${mentionedUsername} not found in the database.`);
+          continue;
         }
-      ],
-    });
 
-     //store token count to track user usage
-    await userModel.findOneAndUpdate({
-      tgId: from.id,
-    }, {
-      $inc: {
-        promptTokens: chatCompletion.usage.prompt_tokens,
-        completionTokens: chatCompletion.usage.completion_tokens,
+        // Update the appreciation counts for the sender and the mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}!`);
+
+        console.log(`Updated appreciation counts: ${sender.username} gave appreciation, ${mentionedUsername} received appreciation.`);
       }
-    });
+    } else {
+      // Handle as a normal message if there are no mentions
+      const newEvent = await eventModel.create({
+        text: message,
+        tgId: from.id,
+      });
+      console.log('New event created:', newEvent);
 
-    await ctx.deleteMessage(waitingMessageId);
-
-    // Split the response into individual posts
-    const posts = chatCompletion.choices[0].message.content.split('\n\n');
-
-    // Send each post separately with character count.
-    for (let post of posts) {
-      if (post.trim()) {
-        const postWithCount = addCharacterCount(post.trim());
-        await ctx.reply(postWithCount);
-      }
+      await ctx.reply('Noted :) Keep texting me your thoughts. To generate the post, just enter the command: /generate');
     }
   } catch (error) {
-    console.error('Error during OpenAI completion:', error);
-    await ctx.reply('Facing difficulties during generation');
+    console.error('Error handling message:', error);
+    await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 
 bot.on(message('text'), async (ctx) => {
    //whenever a message will arrived, we will get user information first.Then further, we will extract text.
