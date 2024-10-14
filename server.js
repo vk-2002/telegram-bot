@@ -76,7 +76,7 @@ bot.start(async (ctx) => {
     }
 
     //after storing data, it will reply 
-    await ctx.reply(`Hey!! ${from.first_name}, Welcome aboard. PostGen-Bot at your service!! I will be writing highly engaging social media posts for you. Just keep feeding me with the events throughout the day. Let's make an impact on social media.`);
+    await ctx.reply(`Hey!! ${from.first_name}, Hello Guys Welcome To Appreciation Group`);
   } catch (error) {
     console.error('Error in start command:', error);
     await ctx.reply('Facing difficulties from server!');
