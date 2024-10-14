@@ -15,6 +15,43 @@ connectDb()
     console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
+//start
+bot.start(async (ctx) => {
+   //store the information of user in DB i.e MongoDb and import it from user.js file
+  const from = ctx.update.message.from;
+  console.log('User started the bot:', from);
+/*if we use create method instead of findOneAndupdate then user can start the bot many times */
+  try {
+    const user = await userModel.findOneAndUpdate(
+      { tgId: from.id },
+      {    // Update user details
+        $set: {
+          firstName: from.first_name,
+          lastName: from.last_name,
+          isBot: from.is_bot,
+         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
+          username: from.username || '', 
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }   // Create if not exists
+    );
+
+    if (user.createdAt === user.updatedAt) {
+      console.log('New user created:', user);
+    } else {
+      console.log('Existing user updated:', user);
+    }
+
+    //after storing data, it will reply 
+    await ctx.reply(`Hey!! ${from.first_name},Bot is Active to Appriciation`);
+  } catch (error) {
+    console.error('Error in start command:', error);
+    await ctx.reply('Facing difficulties from server!');
+  }
+});
+
+//
+
 
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
@@ -29,11 +66,11 @@ bot.on('text', async (ctx) => {
   }
 
   try {
-    // Extract @username mentions and capitalized words that could be names
+    // Extract @username mentions and plain names (capitalized words for possible names)
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
-    let mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized names
+    const mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized words as names
 
-    // If no mentions (neither @username nor real names), return without action
+    // If no mentions, return without action
     if (!mentionedUsernames && (!mentionedNames || mentionedNames.length === 0)) {
       console.log('No valid mentions found, posting message without actions.');
       return;
