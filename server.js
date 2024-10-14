@@ -16,9 +16,8 @@ connectDb()
     process.exit(1);
   });
 
-// Bot handler for messages with mentions in group
 bot.on('text', async (ctx) => {
-  const from = ctx.update.message.from; // User who sent the message
+  const from = ctx.update.message.from; // The user who sent the message
   const message = ctx.update.message.text.trim();
   const chatType = ctx.update.message.chat.type;
 
@@ -31,12 +30,13 @@ bot.on('text', async (ctx) => {
 
   try {
     // Extract @username mentions and capitalized words that could be names
-    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username
-    const mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized names
+    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
+    let mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized names
 
-    if (!mentionedUsernames && !mentionedNames) {
-      console.log('No mentions found, posting message without actions.');
-      return; // Exit if no mentions are found
+    // If no mentions (neither @username nor real names), return without action
+    if (!mentionedUsernames && (!mentionedNames || mentionedNames.length === 0)) {
+      console.log('No valid mentions found, posting message without actions.');
+      return;
     }
 
     // Ensure the sender exists in the database
@@ -52,10 +52,10 @@ bot.on('text', async (ctx) => {
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Process mentions and update appreciation counts
+    // Process @username mentions
     if (mentionedUsernames) {
       for (const mention of mentionedUsernames) {
-        const mentionedUsername = mention.substring(1); // Remove @ symbol
+        const mentionedUsername = mention.substring(1); // Remove the @ symbol
 
         // Look for the mentioned user by username in the database
         let mentionedUser = await userModel.findOne({ username: mentionedUsername });
@@ -74,7 +74,8 @@ bot.on('text', async (ctx) => {
       }
     }
 
-    if (mentionedNames) {
+    // Process plain names (non-@ mentions)
+    if (mentionedNames && mentionedNames.length > 0) {
       for (const plainName of mentionedNames) {
         let mentionedUser = await userModel.findOne({ firstName: plainName });
 
