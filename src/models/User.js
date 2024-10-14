@@ -1,39 +1,19 @@
 import mongoose from "mongoose";
 
 // Define the schema for storing user information in MongoDB.
-const userSchema = mongoose.Schema({
-    tgId: {   // Telegram ID
-        type: String,
-        required: true,
-        unique: true
-    },
-    firstName: {
-        type: String,
-        required: true
-    },
-    lastName: {
-        type: String,
-        required: true
-    },
-    isBot: {
-        type: Boolean,
-        required: true
-    },
-    username: {
-        type: String,
-        required: false, // Make username optional
-        unique: false // Remove uniqueness constraint
-    },
-    // Optional fields
-    promptTokens: {
-        type: Number,
-        required: false
-    },
-    completionTokens: {
-        type: Number,
-        required: false
-    }
+// Add these fields to the User schema in ./src/models/User.js
+const userSchema = new mongoose.Schema({
+  tgId: { type: Number, required: true, unique: true },
+  firstName: String,
+  lastName: String,
+  isBot: Boolean,
+  username: String,
+  promptTokens: { type: Number, default: 0 },
+  completionTokens: { type: Number, default: 0 },
+  receivedAppreciationCount: { type: Number, default: 0 }, // New field
+  givenAppreciationCount: { type: Number, default: 0 }    // New field
 }, { timestamps: true });
+
 
 // Export the model in server.js file 
 export default mongoose.model('User', userSchema);
