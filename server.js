@@ -15,7 +15,17 @@ connectDb()
     console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
+//Web book 
+// Remove bot.launch() if webhook is set
+bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
+  console.log('Webhook set successfully');
+}).catch((error) => {
+  console.error('Error setting webhook:', error);
+});
 
+// Remove bot.launch() since webhook is handling the updates
+
+//
 // Bot start command to initialize the user in the database
 bot.start(async (ctx) => {
   const from = ctx.update.message.from;
