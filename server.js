@@ -107,7 +107,7 @@ bot.on(message('text'), async (ctx) => {
         firstName: from.first_name,
         lastName: from.last_name,
         isBot: from.is_bot,
-        username: from.username,
+        username: from.username || '', // Handle users without a username
       });
       console.log('Created new sender in message handler:', sender);
     }
@@ -119,12 +119,18 @@ bot.on(message('text'), async (ctx) => {
       for (const mention of mentionedUsernames) {
         const mentionedUsername = mention.substring(1); // Remove the "@" symbol
 
-        // Find the mentioned user in the database
+        // Try to find the mentioned user in the database by username
         let mentionedUser = await userModel.findOne({ username: mentionedUsername });
+
         if (!mentionedUser) {
-          // If the mentioned user is not found in the database, skip to the next mention
-          await ctx.reply(`User @${mentionedUsername} not found in the database.`);
-          continue;
+          // If the mentioned user is not found by username, try to match by their Telegram ID
+          mentionedUser = await userModel.findOne({ tgId: ctx.update.message.reply_to_message?.from?.id });
+          
+          if (!mentionedUser) {
+            // If no matching user by username or tgId, send a message that the user was not found
+            await ctx.reply(`User @${mentionedUsername} not found in the database, and no alternative way to identify them.`);
+            continue;
+          }
         }
 
         // Update the appreciation counts for the sender and the mentioned user
@@ -132,7 +138,7 @@ bot.on(message('text'), async (ctx) => {
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
         // Immediate reply for appreciation acknowledgment
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername || mentionedUser.firstName || 'this user'}! 🎉`);
         
         console.log(`Updated appreciation counts: ${sender.username} gave appreciation, ${mentionedUsername} received appreciation.`);
       }
@@ -145,6 +151,7 @@ bot.on(message('text'), async (ctx) => {
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 
 //
 
