@@ -8,10 +8,6 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 app.use(express.json());
 app.use(bot.webhookCallback('/'));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
 // MongoDB connection
 connectDb()
   .then(() => console.log('MongoDb database connected successfully'))
@@ -19,46 +15,43 @@ connectDb()
     console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
-//start
+
+// Bot start command to initialize the user in the database
 bot.start(async (ctx) => {
-   //store the information of user in DB i.e MongoDb and import it from user.js file
   const from = ctx.update.message.from;
   console.log('User started the bot:', from);
-/*if we use create method instead of findOneAndupdate then user can start the bot many times */
+
   try {
     const user = await userModel.findOneAndUpdate(
       { tgId: from.id },
-      {    // Update user details
+      {
         $set: {
           firstName: from.first_name,
           lastName: from.last_name,
           isBot: from.is_bot,
-         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
-          username: from.username || '', 
+          username: from.username || '', // Handle users without a username
         }
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }   // Create if not exists
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    if (user.createdAt === user.updatedAt) {
-      console.log('New user created:', user);
-    } else {
-      console.log('Existing user updated:', user);
-    }
+    const message = user.createdAt === user.updatedAt
+      ? 'New user created:'
+      : 'Existing user updated:';
+    
+    console.log(message, user);
 
-    //after storing data, it will reply 
-    await ctx.reply(`Hey!! ${from.first_name},Bot is Active to Appriciation`);
+    // Reply after storing data
+    await ctx.reply(`Hey!! ${from.first_name}, Bot is active for appreciation.`);
   } catch (error) {
     console.error('Error in start command:', error);
     await ctx.reply('Facing difficulties from server!');
   }
 });
 
-//
-
-
+// Handle messages in group or supergroup
 bot.on('text', async (ctx) => {
-  const from = ctx.update.message.from; // The user who sent the message
+  const from = ctx.update.message.from;
   const message = ctx.update.message.text.trim();
   const chatType = ctx.update.message.chat.type;
 
@@ -66,7 +59,7 @@ bot.on('text', async (ctx) => {
 
   // Only process if it's a group or supergroup message
   if (chatType !== 'group' && chatType !== 'supergroup') {
-    return; // Do nothing if it's a private chat
+    return;
   }
 
   try {
@@ -74,9 +67,9 @@ bot.on('text', async (ctx) => {
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
     const mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized words as names
 
-    // If no mentions, return without action
+    // If no mentions, skip database lookups and let the message pass normally
     if (!mentionedUsernames && (!mentionedNames || mentionedNames.length === 0)) {
-      console.log('No valid mentions found, posting message without actions.');
+      console.log('No mentions found, message will be processed normally.');
       return;
     }
 
