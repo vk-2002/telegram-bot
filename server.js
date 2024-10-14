@@ -8,6 +8,10 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 app.use(express.json());
 app.use(bot.webhookCallback('/'));
 
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 // MongoDB connection
 connectDb()
   .then(() => console.log('MongoDb database connected successfully'))
