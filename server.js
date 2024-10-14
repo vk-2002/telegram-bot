@@ -87,8 +87,8 @@ bot.help((ctx) => {
   ctx.reply('For help, contact the support team or admin :)');
 });
 //to check Bot is responsive or not. 
-bot.command('ping', (ctx) => {
-  ctx.reply('Pong!! Bot is responsive.');
+bot.command('start', (ctx) => {
+  ctx.reply('Welcome to bot.');
 });
 
 // Function to count characters
@@ -136,25 +136,21 @@ bot.on(message('text'), async (ctx) => {
         await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}!`);
-
+        // Immediate reply for appreciation acknowledgment
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
+        
         console.log(`Updated appreciation counts: ${sender.username} gave appreciation, ${mentionedUsername} received appreciation.`);
       }
     } else {
-      // Handle as a normal message if there are no mentions
-      const newEvent = await eventModel.create({
-        text: message,
-        tgId: from.id,
-      });
-      console.log('New event created:', newEvent);
-
-      await ctx.reply('Noted :) Keep texting me your thoughts. To generate the post, just enter the command: /generate');
+      // If no mentions, do nothing or handle normal messages (if required)
+      console.log(`No mentions in the message from user ${from.id}. Message: "${message}"`);
     }
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 //
 
 bot.command('appreciation', async (ctx) => {
