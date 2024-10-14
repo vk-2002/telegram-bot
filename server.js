@@ -156,6 +156,32 @@ bot.on(message('text'), async (ctx) => {
   }
 });
 
+bot.command('appreciation', async (ctx) => {
+  const from = ctx.update.message.from;
+
+  try {
+    const user = await userModel.findOne({ tgId: from.id });
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
+
+    const appreciationStats = `
+    👍 You have appreciated others ${user.givenAppreciationCount} times.
+    🎉 You have been appreciated ${user.receivedAppreciationCount} times.
+    `;
+
+    await ctx.reply(appreciationStats);
+  } catch (error) {
+    console.error('Error in /appreciation command:', error);
+    await ctx.reply('Unable to fetch appreciation stats.');
+  }
+});
+
+
+
+
+
 
 bot.on(message('text'), async (ctx) => {
    //whenever a message will arrived, we will get user information first.Then further, we will extract text.
