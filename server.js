@@ -91,11 +91,6 @@ bot.command('start', (ctx) => {
   ctx.reply('Welcome to bot.');
 });
 
-// Function to count characters
-function addCharacterCount(post) {
-  const count = post.length;
-  return `${post}\n\nCharacter count: ${count}`;
-}
 
 //edited
 bot.on(message('text'), async (ctx) => {
@@ -176,43 +171,6 @@ bot.command('appreciation', async (ctx) => {
 });
 
 
-
-
-
-
-bot.on(message('text'), async (ctx) => {
-   //whenever a message will arrived, we will get user information first.Then further, we will extract text.
-  const from = ctx.update.message.from;
-  const message = ctx.update.message.text;
-  console.log(`Received message from user ${from.id}: ${message}`);
-
-  try {
-    // Ensure user exists
-    let user = await userModel.findOne({ tgId: from.id });
-    if (!user) {
-      //New users are created if they somehow bypass the start command.
-      user = await userModel.create({
-        tgId: from.id,
-        firstName: from.first_name,
-        lastName: from.last_name,
-        isBot: from.is_bot,
-        username: from.username,
-      });
-      console.log('Created new user in message handler:', user);
-    }
-
-    const newEvent = await eventModel.create({
-      text: message,
-      tgId: from.id,
-    });
-    console.log('New event created:', newEvent);
-
-    await ctx.reply('Noted :) wait');
-  } catch (error) {
-    console.error('Error handling message:', error);
-    await ctx.reply('Facing difficulties. Please try again.');
-  }
-});
 
 // Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
