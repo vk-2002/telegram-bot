@@ -97,7 +97,7 @@ function addCharacterCount(post) {
   return `${post}\n\nCharacter count: ${count}`;
 }
 
-//we have to keep bot.command above bot.on. so,if generate is command,then it will be captured easily rather than as a text.
+//edited
 bot.on(message('text'), async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
   const message = ctx.update.message.text;
@@ -155,6 +155,7 @@ bot.on(message('text'), async (ctx) => {
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+//
 
 bot.command('appreciation', async (ctx) => {
   const from = ctx.update.message.from;
@@ -210,7 +211,7 @@ bot.on(message('text'), async (ctx) => {
     });
     console.log('New event created:', newEvent);
 
-    await ctx.reply('Noted :) Keep texting me your thoughts. To generate the post, just enter the command: /generate');
+    await ctx.reply('Noted :) wait');
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
