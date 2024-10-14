@@ -8,15 +8,6 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 app.use(express.json());
 app.use(bot.webhookCallback('/'));
 
-app.get('/', (req, res) => {
-  res.status(200).send('Bot is up and running');
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 // MongoDB connection
 connectDb()
   .then(() => console.log('MongoDb database connected successfully'))
@@ -25,26 +16,44 @@ connectDb()
     process.exit(1);
   });
 
-// Bot handler for messages with mentions only
+// Bot handler for messages with mentions in group
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // User who sent the message
   const message = ctx.update.message.text.trim();
-  console.log(`Received message from user ${from.id}: ${message}`);
+  const chatType = ctx.update.message.chat.type;
+
+  console.log(`Received message from user ${from.id}: ${message} in chat type: ${chatType}`);
+
+  // Only process if it's a group or supergroup message
+  if (chatType !== 'group' && chatType !== 'supergroup') {
+    return; // Do nothing if it's a private chat
+  }
 
   try {
     // Extract @username mentions and capitalized words that could be names
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username
     const mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized names
 
-    // If there's no mention of another user, skip handling
     if (!mentionedUsernames && !mentionedNames) {
-      console.log('No mentions found, skipping database lookup.');
-      return; // Exit function
+      console.log('No mentions found, posting message without actions.');
+      return; // Exit if no mentions are found
     }
 
-    // If mentions are found, continue with database lookups and appreciation handling
+    // Ensure the sender exists in the database
+    let sender = await userModel.findOne({ tgId: from.id });
+    if (!sender) {
+      sender = await userModel.create({
+        tgId: from.id,
+        firstName: from.first_name,
+        lastName: from.last_name,
+        isBot: from.is_bot,
+        username: from.username || '', // Handle users without a username
+      });
+      console.log('Created new sender in message handler:', sender);
+    }
+
+    // Process mentions and update appreciation counts
     if (mentionedUsernames) {
-      // Handle appreciation for users with @username
       for (const mention of mentionedUsernames) {
         const mentionedUsername = mention.substring(1); // Remove @ symbol
 
@@ -56,17 +65,16 @@ bot.on('text', async (ctx) => {
           continue;
         }
 
-        // Update the appreciation counts for both the sender and the mentioned user
-        await userModel.findOneAndUpdate({ tgId: from.id }, { $inc: { givenAppreciationCount: 1 } });
+        // Update appreciation counts for both sender and mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-        // Immediate thank you reply
+        // Thank-you reply in the group
         await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
       }
     }
 
     if (mentionedNames) {
-      // Handle appreciation for users mentioned by their real name (like "Sanket")
       for (const plainName of mentionedNames) {
         let mentionedUser = await userModel.findOne({ firstName: plainName });
 
@@ -75,21 +83,22 @@ bot.on('text', async (ctx) => {
           continue;
         }
 
-        // Update the appreciation counts for both the sender and the mentioned user
-        await userModel.findOneAndUpdate({ tgId: from.id }, { $inc: { givenAppreciationCount: 1 } });
+        // Update appreciation counts for both sender and mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-        // Immediate thank you reply
+        // Thank-you reply in the group
         await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
       }
     }
+
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
 
-// Setting webhook
+// Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
   console.log('Webhook set successfully');
   bot.launch();
