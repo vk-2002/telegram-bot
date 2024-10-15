@@ -102,8 +102,8 @@ bot.on('text', async (ctx) => {
         await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-        // Send a reply in the group
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
+        // Send a private thank-you message to the mentioned user
+        await bot.telegram.sendMessage(mentionedUser.tgId, `You were appreciated by ${from.first_name} in the group! 🎉`);
       }
     }
 
@@ -122,8 +122,8 @@ bot.on('text', async (ctx) => {
         await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-        // Send a reply in the group
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
+        // Send a private thank-you message to the mentioned user
+        await bot.telegram.sendMessage(mentionedUser.tgId, `You were appreciated by ${from.first_name} in the group! 🎉`);
       }
     }
 
