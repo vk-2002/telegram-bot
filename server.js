@@ -84,7 +84,7 @@ bot.on('text', async (ctx) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // Handle @username mentions (skip checking if they exist)
+    // Handle @username mentions
     if (mentionedUsernames) {
       for (const mention of mentionedUsernames) {
         const mentionedUsername = mention.substring(1); // Remove @ symbol
@@ -102,7 +102,7 @@ bot.on('text', async (ctx) => {
         await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-        // Reply in the group thanking the user
+        // Reply in the group thanking the user for appreciating the mentioned user
         await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
       }
     }
@@ -122,7 +122,7 @@ bot.on('text', async (ctx) => {
         await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
         await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-        // Reply in the group thanking the user
+        // Reply in the group thanking the user for appreciating the mentioned person by name
         await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
       }
     }
