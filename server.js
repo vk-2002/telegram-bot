@@ -104,6 +104,9 @@ bot.on('text', async (ctx) => {
 
         // Reply in the group thanking the user for appreciating the mentioned user
         await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
+
+        // Confirmation message in the group chat
+        await ctx.reply(`${from.first_name}, your appreciation for @${mentionedUsername} has been calculated!`);
       }
     }
 
@@ -124,6 +127,9 @@ bot.on('text', async (ctx) => {
 
         // Reply in the group thanking the user for appreciating the mentioned person by name
         await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
+
+        // Confirmation message in the group chat
+        await ctx.reply(`${from.first_name}, your appreciation for ${plainName} has been calculated!`);
       }
     }
 
