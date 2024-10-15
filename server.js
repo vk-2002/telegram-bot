@@ -84,45 +84,46 @@ bot.on('text', async (ctx) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // Handle @username mentions
+    // Handle @username mentions (skip checking if they exist)
     if (mentionedUsernames) {
       for (const mention of mentionedUsernames) {
         const mentionedUsername = mention.substring(1); // Remove @ symbol
 
-        // Find the mentioned user by username
-        let mentionedUser = await userModel.findOne({ username: mentionedUsername });
+        // Find or create the mentioned user
+        let mentionedUser = await userModel.findOneAndUpdate(
+          { username: mentionedUsername },
+          {
+            $setOnInsert: { username: mentionedUsername },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
-        // Check if the mentioned user exists in the database and has interacted with the bot
-        if (mentionedUser) {
-          // Increment appreciation counts
-          await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-          await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+        // Increment appreciation counts
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-          // Send a private thank-you message to the mentioned user
-          await bot.telegram.sendMessage(mentionedUser.tgId, `You were appreciated by ${from.first_name} in the group! 🎉`);
-        } else {
-          // If the mentioned user has not interacted with the bot, send a message in the group
-          await ctx.reply(`@${mentionedUsername}, please start the bot to receive private messages!`);
-        }
+        // Reply in the group thanking the user
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
       }
     }
 
     // Handle plain names (non-@ mentions)
     if (mentionedNames && mentionedNames.length > 0) {
       for (const plainName of mentionedNames) {
-        let mentionedUser = await userModel.findOne({ firstName: plainName });
+        let mentionedUser = await userModel.findOneAndUpdate(
+          { firstName: plainName },
+          {
+            $setOnInsert: { firstName: plainName },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
-        if (mentionedUser) {
-          // Increment appreciation counts
-          await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-          await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+        // Increment appreciation counts
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-          // Send a private thank-you message to the mentioned user
-          await bot.telegram.sendMessage(mentionedUser.tgId, `You were appreciated by ${from.first_name} in the group! 🎉`);
-        } else {
-          // If the mentioned user has not interacted with the bot
-          await ctx.reply(`${plainName}, please start the bot to receive private messages!`);
-        }
+        // Reply in the group thanking the user
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
       }
     }
 
