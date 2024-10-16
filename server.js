@@ -1,3 +1,4 @@
+
 import { Telegraf } from "telegraf";
 import userModel from './src/models/User.js';
 import connectDb from './src/config/db.js';
@@ -59,24 +60,24 @@ bot.start(async (ctx) => {
 
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
-  const message = ctx.update.message.text.trim(); // The message text
-  const chatType = ctx.update.message.chat.type; // The type of chat (group/supergroup/private)
+  const message = ctx.update.message.text.trim();
+  const chatType = ctx.update.message.chat.type;
 
   console.log(`Received message from user ${from.id}: ${message} in chat type: ${chatType}`);
 
   // Only process if it's a group or supergroup message
   if (chatType !== 'group' && chatType !== 'supergroup') {
-    return; // Exit if it's a private chat
+    return; // Do nothing if it's a private chat
   }
 
   try {
-    // Extract @username mentions from the message
-    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // Find @username mentions
-    console.log('Mentioned usernames:', mentionedUsernames);
+    // Extract @username mentions and plain names (capitalized words for possible names)
+    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
+    const mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized words as names
 
     // If no mentions, return without action
-    if (!mentionedUsernames || mentionedUsernames.length === 0) {
-      console.log('No valid mentions found, skipping message.');
+    if (!mentionedUsernames && (!mentionedNames || mentionedNames.length === 0)) {
+      console.log('No valid mentions found, posting message without actions.');
       return;
     }
 
@@ -94,26 +95,46 @@ bot.on('text', async (ctx) => {
     }
 
     // Process @username mentions
-    for (const mention of mentionedUsernames) {
-      const mentionedUsername = mention.substring(1).toLowerCase(); // Remove the '@' symbol and convert to lowercase
+    if (mentionedUsernames) {
+      for (const mention of mentionedUsernames) {
+        const mentionedUsername = mention.substring(1); // Remove the @ symbol
 
-      // Look for the mentioned user by username in the database
-      let mentionedUser = await userModel.findOne({ username: mentionedUsername });
-      console.log(`Mentioned user for @${mentionedUsername}:`, mentionedUser);
+        // Look for the mentioned user by username in the database
+        let mentionedUser = await userModel.findOne({ username: mentionedUsername });
 
-      if (!mentionedUser) {
-        await ctx.reply(`User @${mentionedUsername} not found in the database.`);
-        continue;
+        if (!mentionedUser) {
+          await ctx.reply(`User @${mentionedUsername} not found in the database.`);
+          continue;
+        }
+
+        // Update appreciation counts for both sender and mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+        // Thank-you reply in the group
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
       }
-
-      // Update appreciation counts for both sender and mentioned user
-      await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-      await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-      // Thank-you reply in the group, mentioning both the sender and the appreciated user
-      await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
-      console.log(`Sent thank you message for @${mentionedUsername}`);
     }
+
+    // Process plain names (non-@ mentions)
+    if (mentionedNames && mentionedNames.length > 0) {
+      for (const plainName of mentionedNames) {
+        let mentionedUser = await userModel.findOne({ firstName: plainName });
+
+        if (!mentionedUser) {
+          await ctx.reply(`User ${plainName} not found in the database.`);
+          continue;
+        }
+
+        // Update appreciation counts for both sender and mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+        // Thank-you reply in the group
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
+      }
+    }
+
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
