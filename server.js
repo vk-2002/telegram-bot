@@ -72,6 +72,7 @@ bot.on('text', async (ctx) => {
   try {
     // Extract @username mentions from the message
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // Find @username mentions
+    console.log('Mentioned usernames:', mentionedUsernames);
 
     // If no mentions, return without action
     if (!mentionedUsernames || mentionedUsernames.length === 0) {
@@ -94,10 +95,11 @@ bot.on('text', async (ctx) => {
 
     // Process @username mentions
     for (const mention of mentionedUsernames) {
-      const mentionedUsername = mention.substring(1); // Remove the '@' symbol
+      const mentionedUsername = mention.substring(1).toLowerCase(); // Remove the '@' symbol and convert to lowercase
 
       // Look for the mentioned user by username in the database
       let mentionedUser = await userModel.findOne({ username: mentionedUsername });
+      console.log(`Mentioned user for @${mentionedUsername}:`, mentionedUser);
 
       if (!mentionedUser) {
         await ctx.reply(`User @${mentionedUsername} not found in the database.`);
@@ -110,13 +112,13 @@ bot.on('text', async (ctx) => {
 
       // Thank-you reply in the group, mentioning both the sender and the appreciated user
       await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
+      console.log(`Sent thank you message for @${mentionedUsername}`);
     }
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
-
 
 // Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
