@@ -63,7 +63,7 @@ bot.command('addcontactname', async (ctx) => {
   const from = ctx.update.message.from;
   const messageParts = ctx.update.message.text.split(' ');
 
-  if (messageParts.length < 3) {
+  if (messageParts.length < 10) {
     return ctx.reply('Usage: /addcontactname @username contactSavedName');
   }
 
