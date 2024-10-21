@@ -55,6 +55,40 @@ bot.start(async (ctx) => {
   }
 });
 
+
+//command for saving contact number
+
+// Command to add a contact-saved name for a user
+bot.command('addcontactname', async (ctx) => {
+  const from = ctx.update.message.from;
+  const messageParts = ctx.update.message.text.split(' ');
+
+  if (messageParts.length < 3) {
+    return ctx.reply('Usage: /addcontactname @username contactSavedName');
+  }
+
+  const mentionedUsername = messageParts[1].substring(1); // Remove @ symbol
+  const contactSavedName = messageParts.slice(2).join(' '); // The rest is the contact-saved name
+
+  try {
+    const user = await userModel.findOneAndUpdate(
+      { username: mentionedUsername },
+      { $set: { contactSavedName } },
+      { new: true }
+    );
+
+    if (user) {
+      ctx.reply(`Contact name saved: ${contactSavedName} for @${mentionedUsername}`);
+    } else {
+      ctx.reply(`User @${mentionedUsername} not found in the database.`);
+    }
+  } catch (error) {
+    console.error('Error saving contact name:', error);
+    ctx.reply('Failed to save the contact name.');
+  }
+});
+
+
 //
 
 
