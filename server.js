@@ -1,4 +1,3 @@
-
 import { Telegraf } from "telegraf";
 import userModel from './src/models/User.js';
 import connectDb from './src/config/db.js';
@@ -13,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 // MongoDB connection
 connectDb()
   .then(() => console.log('MongoDb database connected successfully'))
@@ -20,25 +20,24 @@ connectDb()
     console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
-//start
+
+// Start command: Store the user information
 bot.start(async (ctx) => {
-   //store the information of user in DB i.e MongoDb and import it from user.js file
   const from = ctx.update.message.from;
   console.log('User started the bot:', from);
-/*if we use create method instead of findOneAndupdate then user can start the bot many times */
+
   try {
     const user = await userModel.findOneAndUpdate(
       { tgId: from.id },
-      {    // Update user details
+      {
         $set: {
           firstName: from.first_name,
           lastName: from.last_name,
           isBot: from.is_bot,
-         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
-          username: from.username || '', 
+          username: from.username || '', // Handle undefined username
         }
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }   // Create if not exists
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     if (user.createdAt === user.updatedAt) {
@@ -47,28 +46,23 @@ bot.start(async (ctx) => {
       console.log('Existing user updated:', user);
     }
 
-    //after storing data, it will reply 
-    await ctx.reply(`Hey!! ${from.first_name},Bot is Active to Appriciation`);
+    await ctx.reply(`Hey!! ${from.first_name}, Bot is Active for Appreciation`);
   } catch (error) {
     console.error('Error in start command:', error);
     await ctx.reply('Facing difficulties from server!');
   }
 });
 
-
-//command for saving contact number
-
-// Command to add a contact-saved name for a user
+// Command for adding a contact-saved name
 bot.command('addcontactname', async (ctx) => {
-  const from = ctx.update.message.from;
   const messageParts = ctx.update.message.text.split(' ');
 
-  if (messageParts.length < 10) {
+  if (messageParts.length < 3) {
     return ctx.reply('Usage: /addcontactname @username contactSavedName');
   }
 
   const mentionedUsername = messageParts[1].substring(1); // Remove @ symbol
-  const contactSavedName = messageParts.slice(2).join(' '); // The rest is the contact-saved name
+  const contactSavedName = messageParts.slice(2).join(' '); // Rest of the message is the contact-saved name
 
   try {
     const user = await userModel.findOneAndUpdate(
@@ -86,12 +80,9 @@ bot.command('addcontactname', async (ctx) => {
     console.error('Error saving contact name:', error);
     ctx.reply('Failed to save the contact name.');
   }
-};
+});
 
-
-//
-
-
+// Message handler: Process only @username mentions
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
   const message = ctx.update.message.text.trim();
@@ -108,9 +99,9 @@ bot.on('text', async (ctx) => {
     // Extract @username mentions
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
 
-    // If no mentions, return without action
+    // If no @username is mentioned, do nothing
     if (!mentionedUsernames || mentionedUsernames.length === 0) {
-      console.log('No valid mentions found, ignoring message.');
+      console.log('No valid @username mentions found, ignoring message.');
       return;
     }
 
@@ -127,7 +118,7 @@ bot.on('text', async (ctx) => {
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Process @username mentions
+    // Process each @username mention
     for (const mention of mentionedUsernames) {
       const mentionedUsername = mention.substring(1); // Remove the @ symbol
 
@@ -135,7 +126,8 @@ bot.on('text', async (ctx) => {
       let mentionedUser = await userModel.findOne({ username: mentionedUsername });
 
       if (!mentionedUser) {
-        await ctx.reply(`User @${mentionedUsername} not found in the database.`);
+        // If the mentioned user is not found, skip without replying
+        console.log(`User @${mentionedUsername} not found in the database.`);
         continue;
       }
 
@@ -146,32 +138,6 @@ bot.on('text', async (ctx) => {
       // Thank-you reply in the group
       await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
     }
-  } catch (error) {
-    console.error('Error handling message:', error);
-    await ctx.reply('Facing difficulties. Please try again.');
-  }
-});
-
-
-    // Process plain names (non-@ mentions)
-    if (mentionedNames && mentionedNames.length > 0) {
-      for (const plainName of mentionedNames) {
-        let mentionedUser = await userModel.findOne({ firstName: plainName });
-
-        if (!mentionedUser) {
-          await ctx.reply(`User ${plainName} not found in the database.`);
-          continue;
-        }
-
-        // Update appreciation counts for both sender and mentioned user
-        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-        // Thank-you reply in the group
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
-      }
-    }
-
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
