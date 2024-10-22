@@ -22,66 +22,6 @@ connectDb()
   });
 
 // Start command: Store the user information
-bot.start(async (ctx) => {
-  const from = ctx.update.message.from;
-  console.log('User started the bot:', from);
-
-  try {
-    const user = await userModel.findOneAndUpdate(
-      { tgId: from.id },
-      {
-        $set: {
-          firstName: from.first_name,
-          lastName: from.last_name,
-          isBot: from.is_bot,
-          username: from.username || '', // Handle undefined username
-        }
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    if (user.createdAt === user.updatedAt) {
-      console.log('New user created:', user);
-    } else {
-      console.log('Existing user updated:', user);
-    }
-
-    await ctx.reply(`Hey!! ${from.first_name}, Bot is Active for Appreciation`);
-  } catch (error) {
-    console.error('Error in start command:', error);
-    await ctx.reply('Facing difficulties from server!');
-  }
-});
-
-// Command for adding a contact-saved name
-bot.command('addcontactname', async (ctx) => {
-  const messageParts = ctx.update.message.text.split(' ');
-
-  if (messageParts.length < 3) {
-    return ctx.reply('Usage: /addcontactname @username contactSavedName');
-  }
-
-  const mentionedUsername = messageParts[1].substring(1); // Remove @ symbol
-  const contactSavedName = messageParts.slice(2).join(' '); // Rest of the message is the contact-saved name
-
-  try {
-    const user = await userModel.findOneAndUpdate(
-      { username: mentionedUsername },
-      { $set: { contactSavedName } },
-      { new: true }
-    );
-
-    if (user) {
-      ctx.reply(`Contact name saved: ${contactSavedName} for @${mentionedUsername}`);
-    } else {
-      ctx.reply(`User @${mentionedUsername} not found in the database.`);
-    }
-  } catch (error) {
-    console.error('Error saving contact name:', error);
-    ctx.reply('Failed to save the contact name.');
-  }
-});
-
 // Message handler: Process only @username mentions
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
@@ -141,14 +81,15 @@ bot.on('text', async (ctx) => {
       await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
       await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-      // Thank-you reply in the group
-      await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername} (Telegram ID: ${mentionedUser.tgId})! 🎉`);
+      // Thank-you reply in the group to the mentioned user
+      await ctx.reply(`Thank you, @${mentionedUsername}, for receiving appreciation from ${from.first_name}! 🎉`);
     }
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 
 // Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
