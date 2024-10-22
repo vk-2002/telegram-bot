@@ -131,12 +131,18 @@ bot.on('text', async (ctx) => {
         continue;
       }
 
+      // Ensure mentioned user has a Telegram ID
+      if (!mentionedUser.tgId) {
+        console.log(`User @${mentionedUsername} has no Telegram ID stored.`);
+        continue;
+      }
+
       // Update appreciation counts for both sender and mentioned user
       await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
       await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
       // Thank-you reply in the group
-      await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
+      await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername} (Telegram ID: ${mentionedUser.tgId})! 🎉`);
     }
   } catch (error) {
     console.error('Error handling message:', error);
