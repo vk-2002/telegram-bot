@@ -21,44 +21,6 @@ connectDb()
     process.exit(1);
   });
 //start
-bot.start(async (ctx) => {
-   //store the information of user in DB i.e MongoDb and import it from user.js file
-  const from = ctx.update.message.from;
-  console.log('User started the bot:', from);
-/*if we use create method instead of findOneAndupdate then user can start the bot many times */
-  try {
-    const user = await userModel.findOneAndUpdate(
-      { tgId: from.id },
-      {    // Update user details
-        $set: {
-          firstName: from.first_name,
-          lastName: from.last_name,
-          isBot: from.is_bot,
-         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
-          username: from.username || '', 
-        }
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }   // Create if not exists
-    );
-
-    if (user.createdAt === user.updatedAt) {
-      console.log('New user created:', user);
-    } else {
-      console.log('Existing user updated:', user);
-    }
-
-    //after storing data, it will reply 
-    await ctx.reply(`Hey!! ${from.first_name},Bot is Active to Appriciation`);
-  } catch (error) {
-    console.error('Error in start command:', error);
-    await ctx.reply('Facing difficulties from server!');
-  }
-});
-
-//
-
-
-// Message handler: Process only @username mentions
 // Message handler: Process only @username mentions
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
@@ -75,6 +37,7 @@ bot.on('text', async (ctx) => {
   try {
     // Extract @username mentions
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
+    console.log(`Mentioned usernames: ${mentionedUsernames}`); // Log the extracted mentions
 
     // If no @username is mentioned, do nothing
     if (!mentionedUsernames || mentionedUsernames.length === 0) {
@@ -93,19 +56,25 @@ bot.on('text', async (ctx) => {
         username: from.username || '', // Handle users without a username
       });
       console.log('Created new sender in message handler:', sender);
+    } else {
+      console.log(`Found sender in DB: ${sender.username || sender.firstName}`);
     }
 
     // Process the first @username mention (we only need the first mention for this logic)
     const firstMention = mentionedUsernames[0].substring(1); // Get the first mentioned username
+    console.log(`Processing mention for username: ${firstMention}`);
 
     // Look for the mentioned user by username in the database
     let mentionedUser = await userModel.findOne({ username: firstMention });
 
     if (!mentionedUser) {
-      // If the mentioned user is not found, skip without replying
+      // If the mentioned user is not found, log it
       console.log(`User @${firstMention} not found in the database.`);
+      await ctx.reply(`Sorry, @${firstMention} is not found in the database.`);
       return;
     }
+
+    console.log(`Mentioned user found in DB: ${mentionedUser.username}`);
 
     // Update appreciation counts for both sender and mentioned user
     await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
@@ -113,11 +82,13 @@ bot.on('text', async (ctx) => {
 
     // Reply thanking the sender for appreciating the mentioned user
     await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${firstMention}! 🎉`);
+    console.log(`Replied with appreciation message to @${sender.username || from.first_name}`);
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 
 
 // Setting webhook for bot launch
