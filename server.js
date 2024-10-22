@@ -1,3 +1,4 @@
+
 import { Telegraf } from "telegraf";
 import userModel from './src/models/User.js';
 import connectDb from './src/config/db.js';
@@ -12,7 +13,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
 // MongoDB connection
 connectDb()
   .then(() => console.log('MongoDb database connected successfully'))
@@ -20,9 +20,44 @@ connectDb()
     console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
+//start
+bot.start(async (ctx) => {
+   //store the information of user in DB i.e MongoDb and import it from user.js file
+  const from = ctx.update.message.from;
+  console.log('User started the bot:', from);
+/*if we use create method instead of findOneAndupdate then user can start the bot many times */
+  try {
+    const user = await userModel.findOneAndUpdate(
+      { tgId: from.id },
+      {    // Update user details
+        $set: {
+          firstName: from.first_name,
+          lastName: from.last_name,
+          isBot: from.is_bot,
+         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
+          username: from.username || '', 
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }   // Create if not exists
+    );
 
-// Start command: Store the user information
-// Message handler: Process only @username mentions
+    if (user.createdAt === user.updatedAt) {
+      console.log('New user created:', user);
+    } else {
+      console.log('Existing user updated:', user);
+    }
+
+    //after storing data, it will reply 
+    await ctx.reply(`Hey!! ${from.first_name},Bot is Active to Appriciation`);
+  } catch (error) {
+    console.error('Error in start command:', error);
+    await ctx.reply('Facing difficulties from server!');
+  }
+});
+
+//
+
+
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
   const message = ctx.update.message.text.trim();
@@ -36,12 +71,13 @@ bot.on('text', async (ctx) => {
   }
 
   try {
-    // Extract @username mentions
+    // Extract @username mentions and plain names (capitalized words for possible names)
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
+    const mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized words as names
 
-    // If no @username is mentioned, do nothing
-    if (!mentionedUsernames || mentionedUsernames.length === 0) {
-      console.log('No valid @username mentions found, ignoring message.');
+    // If no mentions, return without action
+    if (!mentionedUsernames && (!mentionedNames || mentionedNames.length === 0)) {
+      console.log('No valid mentions found, posting message without actions.');
       return;
     }
 
@@ -58,38 +94,52 @@ bot.on('text', async (ctx) => {
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Process each @username mention
-    for (const mention of mentionedUsernames) {
-      const mentionedUsername = mention.substring(1); // Remove the @ symbol
+    // Process @username mentions
+    if (mentionedUsernames) {
+      for (const mention of mentionedUsernames) {
+        const mentionedUsername = mention.substring(1); // Remove the @ symbol
 
-      // Look for the mentioned user by username in the database
-      let mentionedUser = await userModel.findOne({ username: mentionedUsername });
+        // Look for the mentioned user by username in the database
+        let mentionedUser = await userModel.findOne({ username: mentionedUsername });
 
-      if (!mentionedUser) {
-        // If the mentioned user is not found, skip without replying
-        console.log(`User @${mentionedUsername} not found in the database.`);
-        continue;
+        if (!mentionedUser) {
+          await ctx.reply(`User @${mentionedUsername} not found in the database.`);
+          continue;
+        }
+
+        // Update appreciation counts for both sender and mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+        // Thank-you reply in the group
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
       }
-
-      // Ensure mentioned user has a Telegram ID
-      if (!mentionedUser.tgId) {
-        console.log(`User @${mentionedUsername} has no Telegram ID stored.`);
-        continue;
-      }
-
-      // Update appreciation counts for both sender and mentioned user
-      await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-      await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-      // Thank-you reply in the group to the mentioned user
-      await ctx.reply(`Thank you, @${mentionedUsername}, for receiving appreciation from ${from.first_name}! 🎉`);
     }
+
+    // Process plain names (non-@ mentions)
+    if (mentionedNames && mentionedNames.length > 0) {
+      for (const plainName of mentionedNames) {
+        let mentionedUser = await userModel.findOne({ firstName: plainName });
+
+        if (!mentionedUser) {
+          await ctx.reply(`User ${plainName} not found in the database.`);
+          continue;
+        }
+
+        // Update appreciation counts for both sender and mentioned user
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+        // Thank-you reply in the group
+        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
+      }
+    }
+
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
-
 
 // Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
