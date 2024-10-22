@@ -86,7 +86,7 @@ bot.command('addcontactname', async (ctx) => {
     console.error('Error saving contact name:', error);
     ctx.reply('Failed to save the contact name.');
   }
-});
+};
 
 
 //
