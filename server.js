@@ -1,3 +1,4 @@
+
 import { Telegraf } from "telegraf";
 import userModel from './src/models/User.js';
 import connectDb from './src/config/db.js';
@@ -12,7 +13,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
 // MongoDB connection
 connectDb()
   .then(() => console.log('MongoDb database connected successfully'))
@@ -20,12 +20,12 @@ connectDb()
     console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
-
-// Bot start command
+//start
 bot.start(async (ctx) => {
+   //store the information of user in DB i.e MongoDb and import it from user.js file
   const from = ctx.update.message.from;
   console.log('User started the bot:', from);
-
+/*if we use create method instead of findOneAndupdate then user can start the bot many times */
   try {
     const user = await userModel.findOneAndUpdate(
       { tgId: from.id },
@@ -34,6 +34,7 @@ bot.start(async (ctx) => {
           firstName: from.first_name,
           lastName: from.last_name,
           isBot: from.is_bot,
+         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
           username: from.username || '', 
         }
       },
@@ -46,98 +47,78 @@ bot.start(async (ctx) => {
       console.log('Existing user updated:', user);
     }
 
-    await ctx.reply(`Hey!! ${from.first_name}, Bot is Active for Appreciation.`);
+    //after storing data, it will reply 
+    await ctx.reply(`Hey!! ${from.first_name},Bot is Active to Appriciation`);
   } catch (error) {
     console.error('Error in start command:', error);
     await ctx.reply('Facing difficulties from server!');
   }
 });
 
-// Handling text messages in group chats
+//
+
+
+// Message handler: Process only @username mentions
+// Message handler: Process only @username mentions
 bot.on('text', async (ctx) => {
-  const from = ctx.update.message.from;
+  const from = ctx.update.message.from; // The user who sent the message
   const message = ctx.update.message.text.trim();
   const chatType = ctx.update.message.chat.type;
 
   console.log(`Received message from user ${from.id}: ${message} in chat type: ${chatType}`);
 
+  // Only process if it's a group or supergroup message
   if (chatType !== 'group' && chatType !== 'supergroup') {
-    return;
+    return; // Do nothing if it's a private chat
   }
 
   try {
+    // Extract @username mentions
     const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
-    const mentionedNames = message.match(/\b[A-Z][a-z]+\b/g); // Capitalized words as names
 
-    // Ensure the sender exists in the database or create them
-    let sender = await userModel.findOneAndUpdate(
-      { tgId: from.id },
-      {
-        $setOnInsert: {
-          tgId: from.id,
-          firstName: from.first_name,
-          lastName: from.last_name,
-          isBot: from.is_bot,
-          username: from.username || '',
-        },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    // Handle @username mentions
-    if (mentionedUsernames) {
-      for (const mention of mentionedUsernames) {
-        const mentionedUsername = mention.substring(1); // Remove @ symbol
-
-        // Find or create the mentioned user
-        let mentionedUser = await userModel.findOneAndUpdate(
-          { username: mentionedUsername },
-          {
-            $setOnInsert: { username: mentionedUsername },
-          },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-
-        // Increment appreciation counts
-        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-        // Reply in the group thanking the user for appreciating the mentioned user
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
-
-        // Confirmation message in the group chat
-        await ctx.reply(`${from.first_name}, your appreciation for @${mentionedUsername} has been calculated!`);
-      }
+    // If no @username is mentioned, do nothing
+    if (!mentionedUsernames || mentionedUsernames.length === 0) {
+      console.log('No valid @username mentions found, ignoring message.');
+      return;
     }
 
-    // Handle plain names (non-@ mentions)
-    if (mentionedNames && mentionedNames.length > 0) {
-      for (const plainName of mentionedNames) {
-        let mentionedUser = await userModel.findOneAndUpdate(
-          { firstName: plainName },
-          {
-            $setOnInsert: { firstName: plainName },
-          },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-
-        // Increment appreciation counts
-        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-        // Reply in the group thanking the user for appreciating the mentioned person by name
-        await ctx.reply(`Thank you, ${from.first_name}, for appreciating ${plainName}! 🎉`);
-
-        // Confirmation message in the group chat
-        await ctx.reply(`${from.first_name}, your appreciation for ${plainName} has been calculated!`);
-      }
+    // Ensure the sender exists in the database
+    let sender = await userModel.findOne({ tgId: from.id });
+    if (!sender) {
+      sender = await userModel.create({
+        tgId: from.id,
+        firstName: from.first_name,
+        lastName: from.last_name,
+        isBot: from.is_bot,
+        username: from.username || '', // Handle users without a username
+      });
+      console.log('Created new sender in message handler:', sender);
     }
 
+    // Process the first @username mention (we only need the first mention for this logic)
+    const firstMention = mentionedUsernames[0].substring(1); // Get the first mentioned username
+
+    // Look for the mentioned user by username in the database
+    let mentionedUser = await userModel.findOne({ username: firstMention });
+
+    if (!mentionedUser) {
+      // If the mentioned user is not found, skip without replying
+      console.log(`User @${firstMention} not found in the database.`);
+      return;
+    }
+
+    // Update appreciation counts for both sender and mentioned user
+    await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+    await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+    // Reply thanking the sender for appreciating the mentioned user
+    await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${firstMention}! 🎉`);
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 
 // Setting webhook for bot launch
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
