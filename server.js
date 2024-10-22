@@ -59,6 +59,7 @@ bot.start(async (ctx) => {
 
 
 // Message handler: Process only @username mentions
+// Message handler: Process only @username mentions
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
   const message = ctx.update.message.text.trim();
@@ -94,26 +95,24 @@ bot.on('text', async (ctx) => {
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Process each @username mention
-    for (const mention of mentionedUsernames) {
-      const mentionedUsername = mention.substring(1); // Remove the @ symbol
+    // Process the first @username mention (we only need the first mention for this logic)
+    const firstMention = mentionedUsernames[0].substring(1); // Get the first mentioned username
 
-      // Look for the mentioned user by username in the database
-      let mentionedUser = await userModel.findOne({ username: mentionedUsername });
+    // Look for the mentioned user by username in the database
+    let mentionedUser = await userModel.findOne({ username: firstMention });
 
-      if (!mentionedUser) {
-        // If the mentioned user is not found, skip without replying
-        console.log(`User @${mentionedUsername} not found in the database.`);
-        continue;
-      }
-
-      // Update appreciation counts for both sender and mentioned user
-      await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-      await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-      // Thank-you reply in the group
-      await ctx.reply(`Thank you, ${from.first_name}, for appreciating @${mentionedUsername}! 🎉`);
+    if (!mentionedUser) {
+      // If the mentioned user is not found, skip without replying
+      console.log(`User @${firstMention} not found in the database.`);
+      return;
     }
+
+    // Update appreciation counts for both sender and mentioned user
+    await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+    await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
+
+    // Reply thanking the sender for appreciating the mentioned user
+    await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${firstMention}! 🎉`);
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
