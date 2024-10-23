@@ -58,8 +58,6 @@ bot.start(async (ctx) => {
 //
 
 
-// Message handler: Process only @username mentions
-// Message handler: Process only @username mentions
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
   const message = ctx.update.message.text.trim();
@@ -102,8 +100,28 @@ bot.on('text', async (ctx) => {
     let mentionedUser = await userModel.findOne({ username: firstMention });
 
     if (!mentionedUser) {
-      // If the mentioned user is not found, skip without replying
+      // If the mentioned user is not found by username, attempt a fallback mechanism
       console.log(`User @${firstMention} not found in the database.`);
+
+      // Potential Fallback Logic:
+      // Look for a user by tgId (assuming they may have changed their username)
+      mentionedUser = await userModel.findOne({ tgId: from.id });
+
+      if (mentionedUser) {
+        // If found by tgId, update the username and notify the sender
+        await userModel.updateOne(
+          { tgId: from.id },
+          { $set: { username: firstMention } }
+        );
+        console.log(`Updated username for user with tgId: ${from.id}`);
+
+        await ctx.reply(
+          `It seems @${firstMention} changed their username, and we've updated their details in the database. Thank you, @${sender.username || from.first_name}, for appreciating them! 🎉`
+        );
+      } else {
+        // If no user found by tgId either, notify the sender
+        await ctx.reply(`User @${firstMention} not found in the database. It may be that they haven't started the bot yet or their username has changed.`);
+      }
       return;
     }
 
