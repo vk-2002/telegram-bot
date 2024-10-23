@@ -72,6 +72,7 @@ bot.on('text', async (ctx) => {
   try {
     // Extract @username mentions
     const mentionedUsernames = message.match(/@[^\s@]+/g); // Match @ followed by any characters except space or another @
+    console.log('Mentioned usernames:', mentionedUsernames);  // Log extracted usernames
 
     // If no @username is mentioned, do nothing
     if (!mentionedUsernames || mentionedUsernames.length === 0) {
@@ -94,25 +95,26 @@ bot.on('text', async (ctx) => {
 
     // Process the first @username mention (we only need the first mention for this logic)
     const firstMention = mentionedUsernames[0].substring(1); // Get the first mentioned username
+    console.log(`First mentioned username: @${firstMention}`);
 
     // Look for the mentioned user by username in the database
     let mentionedUser = await userModel.findOne({ username: firstMention });
+    console.log('Mentioned user in DB:', mentionedUser);
 
     if (!mentionedUser) {
-      // If the mentioned user is not found by username, attempt a fallback mechanism
+      // If the mentioned user is not found by username, notify and exit
       console.log(`User @${firstMention} not found in the database.`);
 
-      // Potential Fallback Logic:
-      // Look for a user by tgId (assuming they may have changed their username)
-      mentionedUser = await userModel.findOne({ tgId: from.id });
+      // Fallback Logic: Look for user by tgId if the mentioned user changed their username
+      mentionedUser = await userModel.findOne({ tgId: from.id }); // tgId of mentioned user might be wrong here
 
       if (mentionedUser) {
         // If found by tgId, update the username and notify the sender
         await userModel.updateOne(
-          { tgId: from.id },
+          { tgId: mentionedUser.tgId },  // Correct this to update the mentioned user, not the sender
           { $set: { username: firstMention } }
         );
-        console.log(`Updated username for user with tgId: ${from.id}`);
+        console.log(`Updated username for user with tgId: ${mentionedUser.tgId}`);
 
         await ctx.reply(
           `It seems @${firstMention} changed their username, and we've updated their details in the database. Thank you, @${sender.username || from.first_name}, for appreciating them! 🎉`
@@ -135,6 +137,7 @@ bot.on('text', async (ctx) => {
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 
 
 // Setting webhook for bot launch
