@@ -67,14 +67,9 @@ bot.on('text', async (ctx) => {
   }
 
   try {
-    // Extract @username mentions
-    const mentionedUsernames = message.match(/@[^\s@]+/g); // Capture @username mentions
-    console.log('Mentioned usernames:', mentionedUsernames);
-
-    if (!mentionedUsernames || mentionedUsernames.length === 0) {
-      console.log('No valid @username mentions found, ignoring message.');
-      return;
-    }
+    // Extract any words (not just @username) and check against database
+    const messageWords = message.split(/\s+/); // Split message into words
+    console.log('Message words:', messageWords);
 
     // Ensure the sender exists in the database
     let sender = await userModel.findOne({ tgId: from.id });
@@ -89,34 +84,32 @@ bot.on('text', async (ctx) => {
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Process the first @username mention
-    const firstMention = mentionedUsernames[0].substring(1);
-    console.log(`First mentioned username: @${firstMention}`);
+    // Check each word against user database (username, firstName, lastName)
+    for (let word of messageWords) {
+      word = word.replace('@', ''); // Strip out @ symbols to check the word directly
+      let mentionedUser = await userModel.findOne({ 
+        $or: [
+          { username: word }, 
+          { firstName: word }, 
+          { lastName: word }
+        ]
+      });
 
-    // Attempt to find the mentioned user by username or fallback to other fields
-    let mentionedUser = await userModel.findOne({ 
-      $or: [
-        { username: firstMention }, 
-        { firstName: firstMention }, 
-        { lastName: firstMention }
-      ]
-    });
-    console.log('Mentioned user in DB:', mentionedUser);
+      if (mentionedUser) {
+        console.log(`Mentioned user found in DB: @${mentionedUser.username || mentionedUser.firstName}`);
 
-    if (!mentionedUser) {
-      // If mentioned user is not found by username, notify the sender
-      console.log(`User @${firstMention} not found in the database.`);
+        // Update appreciation counts
+        await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
+        await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-      await ctx.reply(`User @${firstMention} not found in the database. It may be that they haven't started the bot yet or their username has changed.`);
-      return;
+        // Reply to thank the sender
+        await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${mentionedUser.username || mentionedUser.firstName}! 🎉`);
+        return;  // Stop after first successful mention
+      }
     }
 
-    // Update appreciation counts for both sender and mentioned user
-    await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
-    await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
-
-    // Reply to thank the sender
-    await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${mentionedUser.username || mentionedUser.firstName}! 🎉`);
+    console.log('No mentioned users found in DB');
+    await ctx.reply('No valid users found in your message. Please ensure the username is correct or that they have started the bot.');
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
