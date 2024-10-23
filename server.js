@@ -57,6 +57,36 @@ bot.start(async (ctx) => {
 
 //
 
+//demo
+bot.on('text', async (ctx) => {
+  const from = ctx.update.message.from;
+  const message = ctx.update.message.text.trim();
+  const chatType = ctx.update.message.chat.type;
+
+  console.log(`Received message from user ${from.id}: ${message} in chat type: ${chatType}`);
+
+  // Only process if it's a group or supergroup message
+  if (chatType === 'group' || chatType === 'supergroup') {
+    // Log the whole message to see what's happening
+    console.log('Complete message:', ctx.update.message);
+
+    // Extract @username mentions
+    const mentionedUsernames = message.match(/@[a-zA-Z0-9_]+/g); // @username mentions
+    console.log('Mentioned Usernames:', mentionedUsernames);
+
+    if (!mentionedUsernames || mentionedUsernames.length === 0) {
+      await ctx.reply('No valid @username mentions found.');
+      return;
+    }
+
+    // Process the first @username mention (for testing)
+    const firstMention = mentionedUsernames[0].substring(1); // Get the first mentioned username
+    await ctx.reply(`You mentioned: @${firstMention}`);
+  }
+});
+
+//demo end
+
 
 bot.on('text', async (ctx) => {
   const from = ctx.update.message.from; // The user who sent the message
