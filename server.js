@@ -93,31 +93,21 @@ bot.on('text', async (ctx) => {
     const firstMention = mentionedUsernames[0].substring(1);
     console.log(`First mentioned username: @${firstMention}`);
 
-    // Look for the mentioned user by username
-    let mentionedUser = await userModel.findOne({ username: firstMention });
+    // Attempt to find the mentioned user by username or fallback to other fields
+    let mentionedUser = await userModel.findOne({ 
+      $or: [
+        { username: firstMention }, 
+        { firstName: firstMention }, 
+        { lastName: firstMention }
+      ]
+    });
     console.log('Mentioned user in DB:', mentionedUser);
 
     if (!mentionedUser) {
-      // If the mentioned user is not found by username
+      // If mentioned user is not found by username, notify the sender
       console.log(`User @${firstMention} not found in the database.`);
 
-      // Fallback Logic: Mentioned user might have changed their username, try finding by sender's ID
-      mentionedUser = await userModel.findOne({ tgId: from.id });
-
-      if (mentionedUser) {
-        // If found by tgId, update the username and notify the sender
-        await userModel.updateOne(
-          { tgId: mentionedUser.tgId },
-          { $set: { username: firstMention } }
-        );
-        console.log(`Updated username for user with tgId: ${mentionedUser.tgId}`);
-
-        await ctx.reply(
-          `It seems @${firstMention} changed their username, and we've updated their details in the database. Thank you, @${sender.username || from.first_name}, for appreciating them! 🎉`
-        );
-      } else {
-        await ctx.reply(`User @${firstMention} not found in the database. It may be that they haven't started the bot yet or their username has changed.`);
-      }
+      await ctx.reply(`User @${firstMention} not found in the database. It may be that they haven't started the bot yet or their username has changed.`);
       return;
     }
 
@@ -126,12 +116,13 @@ bot.on('text', async (ctx) => {
     await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
     // Reply to thank the sender
-    await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${firstMention}! 🎉`);
+    await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${mentionedUser.username || mentionedUser.firstName}! 🎉`);
   } catch (error) {
     console.error('Error handling message:', error);
     await ctx.reply('Facing difficulties. Please try again.');
   }
 });
+
 
 // Setting the webhook and launching the bot
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
