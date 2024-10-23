@@ -1,4 +1,3 @@
-
 import { Telegraf } from "telegraf";
 import userModel from './src/models/User.js';
 import connectDb from './src/config/db.js';
@@ -13,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 // MongoDB connection
 connectDb()
   .then(() => console.log('MongoDb database connected successfully'))
@@ -20,25 +20,24 @@ connectDb()
     console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
-//start
+
+// Bot start command to store user information in MongoDB
 bot.start(async (ctx) => {
-   //store the information of user in DB i.e MongoDb and import it from user.js file
   const from = ctx.update.message.from;
   console.log('User started the bot:', from);
-/*if we use create method instead of findOneAndupdate then user can start the bot many times */
+
   try {
     const user = await userModel.findOneAndUpdate(
       { tgId: from.id },
-      {    // Update user details
+      {
         $set: {
           firstName: from.first_name,
           lastName: from.last_name,
           isBot: from.is_bot,
-         // Handle undefined username, if it is not provided as not all Telegram users have a username set in their profile.
-          username: from.username || '', 
+          username: from.username || '', // Handle undefined username
         }
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }   // Create if not exists
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     if (user.createdAt === user.updatedAt) {
@@ -47,34 +46,31 @@ bot.start(async (ctx) => {
       console.log('Existing user updated:', user);
     }
 
-    //after storing data, it will reply 
-    await ctx.reply(`Hey!! ${from.first_name},Bot is Active to Appriciation`);
+    await ctx.reply(`Hey!! ${from.first_name}, Bot is Active for Appreciation`);
   } catch (error) {
     console.error('Error in start command:', error);
     await ctx.reply('Facing difficulties from server!');
   }
 });
 
-//
-
+// Handle messages and appreciation logic
 bot.on('text', async (ctx) => {
-  const from = ctx.update.message.from; // The user who sent the message
+  const from = ctx.update.message.from;
   const message = ctx.update.message.text.trim();
   const chatType = ctx.update.message.chat.type;
 
   console.log(`Received message from user ${from.id}: ${message} in chat type: ${chatType}`);
 
-  // Only process if it's a group or supergroup message
+  // Process only group or supergroup messages
   if (chatType !== 'group' && chatType !== 'supergroup') {
-    return; // Do nothing if it's a private chat
+    return;
   }
 
   try {
     // Extract @username mentions
-    const mentionedUsernames = message.match(/@[^\s@]+/g); // Match @ followed by any characters except space or another @
-    console.log('Mentioned usernames:', mentionedUsernames);  // Log extracted usernames
+    const mentionedUsernames = message.match(/@[^\s@]+/g); // Capture @username mentions
+    console.log('Mentioned usernames:', mentionedUsernames);
 
-    // If no @username is mentioned, do nothing
     if (!mentionedUsernames || mentionedUsernames.length === 0) {
       console.log('No valid @username mentions found, ignoring message.');
       return;
@@ -93,25 +89,25 @@ bot.on('text', async (ctx) => {
       console.log('Created new sender in message handler:', sender);
     }
 
-    // Process the first @username mention (we only need the first mention for this logic)
-    const firstMention = mentionedUsernames[0].substring(1); // Get the first mentioned username
+    // Process the first @username mention
+    const firstMention = mentionedUsernames[0].substring(1);
     console.log(`First mentioned username: @${firstMention}`);
 
-    // Look for the mentioned user by username in the database
+    // Look for the mentioned user by username
     let mentionedUser = await userModel.findOne({ username: firstMention });
     console.log('Mentioned user in DB:', mentionedUser);
 
     if (!mentionedUser) {
-      // If the mentioned user is not found by username, notify and exit
+      // If the mentioned user is not found by username
       console.log(`User @${firstMention} not found in the database.`);
 
-      // Fallback Logic: Look for user by tgId if the mentioned user changed their username
-      mentionedUser = await userModel.findOne({ tgId: from.id }); // tgId of mentioned user might be wrong here
+      // Fallback Logic: Mentioned user might have changed their username, try finding by sender's ID
+      mentionedUser = await userModel.findOne({ tgId: from.id });
 
       if (mentionedUser) {
         // If found by tgId, update the username and notify the sender
         await userModel.updateOne(
-          { tgId: mentionedUser.tgId },  // Correct this to update the mentioned user, not the sender
+          { tgId: mentionedUser.tgId },
           { $set: { username: firstMention } }
         );
         console.log(`Updated username for user with tgId: ${mentionedUser.tgId}`);
@@ -120,7 +116,6 @@ bot.on('text', async (ctx) => {
           `It seems @${firstMention} changed their username, and we've updated their details in the database. Thank you, @${sender.username || from.first_name}, for appreciating them! 🎉`
         );
       } else {
-        // If no user found by tgId either, notify the sender
         await ctx.reply(`User @${firstMention} not found in the database. It may be that they haven't started the bot yet or their username has changed.`);
       }
       return;
@@ -130,7 +125,7 @@ bot.on('text', async (ctx) => {
     await userModel.findOneAndUpdate({ tgId: sender.tgId }, { $inc: { givenAppreciationCount: 1 } });
     await userModel.findOneAndUpdate({ tgId: mentionedUser.tgId }, { $inc: { receivedAppreciationCount: 1 } });
 
-    // Reply thanking the sender for appreciating the mentioned user
+    // Reply to thank the sender
     await ctx.reply(`Thank you, @${sender.username || from.first_name}, for appreciating @${firstMention}! 🎉`);
   } catch (error) {
     console.error('Error handling message:', error);
@@ -138,9 +133,7 @@ bot.on('text', async (ctx) => {
   }
 });
 
-
-
-// Setting webhook for bot launch
+// Setting the webhook and launching the bot
 bot.telegram.setWebhook(process.env.WEBHOOK_URL).then(() => {
   console.log('Webhook set successfully');
   bot.launch();
